@@ -15,7 +15,9 @@ import { supabase } from "@/lib/supabase";
 import { useSupabaseSession } from "@/hooks/useSupabaseSession";
 import { Account } from "@/types/account";
 import { TransactionFormData, TransactionType } from "@/types/transaction";
+import { Category } from "@/types/category";
 import { PrimaryButton } from "@/screens/auth/components/PrimaryButton";
+import { CategorySelectSheet } from "./components/CategorySelectSheet";
 
 const TRANSACTION_TYPES: { value: TransactionType; label: string; icon: string }[] = [
   { value: "expense", label: "Expense", icon: "arrow-downward" },
@@ -27,10 +29,13 @@ export default function AddTransactionScreen() {
   const router = useRouter();
   const { session } = useSupabaseSession();
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showFromAccounts, setShowFromAccounts] = useState(false);
   const [showToAccounts, setShowToAccounts] = useState(false);
+  const [showCategorySheet, setShowCategorySheet] = useState(false);
 
   const [formData, setFormData] = useState<TransactionFormData>({
     note: "",
@@ -38,6 +43,7 @@ export default function AddTransactionScreen() {
     amount: "",
     from_account_id: null,
     to_account_id: null,
+    category_id: null,
   });
 
   const [errors, setErrors] = useState<
@@ -47,8 +53,19 @@ export default function AddTransactionScreen() {
   useEffect(() => {
     if (session) {
       fetchAccounts();
+      fetchCategories();
     }
   }, [session]);
+
+  // Update selectedCategory when category_id changes
+  useEffect(() => {
+    if (formData.category_id) {
+      const category = categories.find((c) => c.id === formData.category_id);
+      setSelectedCategory(category || null);
+    } else {
+      setSelectedCategory(null);
+    }
+  }, [formData.category_id, categories]);
 
   const fetchAccounts = async () => {
     if (!session?.user) return;
@@ -66,6 +83,24 @@ export default function AddTransactionScreen() {
       Alert.alert("Error", error.message || "Failed to fetch accounts");
     } finally {
       setLoadingAccounts(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    if (!session?.user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error: any) {
+      // Don't show alert for categories, just log it
+      console.error("Error fetching categories:", error);
     }
   };
 
@@ -145,6 +180,7 @@ export default function AddTransactionScreen() {
         amount: amountInSmallestUnit,
         from_account_id: formData.from_account_id,
         to_account_id: formData.to_account_id,
+        category_id: formData.category_id,
         currency: currency,
       });
 
@@ -181,10 +217,23 @@ export default function AddTransactionScreen() {
       // Reset account selections when type changes
       from_account_id: null,
       to_account_id: null,
+      // Reset category for transfer type
+      category_id: type === "transfer" ? null : formData.category_id,
     });
     setErrors({});
     setShowFromAccounts(false);
     setShowToAccounts(false);
+    if (type === "transfer") {
+      setSelectedCategory(null);
+    }
+  };
+
+  const handleCategorySelect = (category: Category | null) => {
+    setSelectedCategory(category);
+    setFormData({
+      ...formData,
+      category_id: category?.id || null,
+    });
   };
 
   if (loadingAccounts) {
@@ -366,6 +415,48 @@ export default function AddTransactionScreen() {
           </View>
         )}
 
+        {/* Category Selection (for Expense and Income) */}
+        {(formData.type === "expense" || formData.type === "income") && (
+          <View className="mb-6">
+            <Text className="text-sm font-medium text-neutral-300 mb-2">
+              Category (Optional)
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowCategorySheet(true)}
+              className="bg-neutral-800 rounded-xl px-4 py-3 flex-row items-center justify-between"
+            >
+              <View className="flex-row items-center flex-1">
+                {selectedCategory ? (
+                  <>
+                    <View
+                      className="w-10 h-10 rounded-lg items-center justify-center mr-3"
+                      style={{ backgroundColor: selectedCategory.background_color }}
+                    >
+                      <Text style={{ fontSize: 20 }}>{selectedCategory.emoji}</Text>
+                    </View>
+                    <Text className="text-white text-base flex-1">
+                      {selectedCategory.name}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <MaterialIcons
+                      name="category"
+                      size={20}
+                      color="white"
+                      style={{ marginRight: 12 }}
+                    />
+                    <Text className="text-white text-base flex-1">
+                      Select category
+                    </Text>
+                  </>
+                )}
+              </View>
+              <MaterialIcons name="chevron-right" size={24} color="white" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* To Account (for Income and Transfer) */}
         {(formData.type === "income" || formData.type === "transfer") && (
           <View className="mb-6">
@@ -469,6 +560,15 @@ export default function AddTransactionScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* Category Select Sheet */}
+      <CategorySelectSheet
+        visible={showCategorySheet}
+        selectedCategoryId={formData.category_id}
+        onClose={() => setShowCategorySheet(false)}
+        onSelect={handleCategorySelect}
+        transactionType={formData.type}
+      />
     </SafeAreaView>
   );
 }

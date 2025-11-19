@@ -61,6 +61,15 @@ export default function TabLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="categories"
+          options={{
+            title: "Categories",
+            tabBarIcon: ({ color, size }) => (
+              <MaterialIcons name="category" size={size} color={color} />
+            ),
+          }}
+        />
       </Tabs>
       <TouchableOpacity
         style={[
