@@ -1,3 +1,19 @@
+-- ============================================================================
+-- NOTE: This file contains the ORIGINAL schema with duplicate trigger issues.
+-- For the FIXED version that resolves double-update problems, see:
+--   - sql/supabase_transactions_schema_fixed.sql (apply this instead)
+--   - sql/TRIGGER_FIX_SUMMARY.md (explanation of issues and fixes)
+--   - sql/MIGRATION_GUIDE_FIX_TRIGGERS.md (step-by-step migration guide)
+-- ============================================================================
+--
+-- ISSUES IN THIS FILE:
+-- 1. This file creates triggers that conflict with triggers from 
+--    supabase_funds_enhancement_migration.sql, causing double updates
+-- 2. Goal saved_amount updates are not handled by triggers
+-- 3. Missing support for goal, goal_withdraw, fund_expense transaction types
+--
+-- ============================================================================
+
 -- Create transactions table
 CREATE TABLE IF NOT EXISTS transactions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
