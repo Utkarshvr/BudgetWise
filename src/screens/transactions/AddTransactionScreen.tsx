@@ -16,7 +16,6 @@ import { useSupabaseSession } from "@/hooks/useSupabaseSession";
 import { Account } from "@/types/account";
 import { TransactionFormData, TransactionType } from "@/types/transaction";
 import { Category } from "@/types/category";
-import { Goal, FUND_TYPE_CONFIG } from "@/types/goal";
 import { PrimaryButton } from "@/screens/auth/components/PrimaryButton";
 import { CategorySelectSheet } from "./components/CategorySelectSheet";
 
@@ -30,7 +29,6 @@ export default function AddTransactionScreen() {
   const router = useRouter();
   const { session } = useSupabaseSession();
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [funds, setFunds] = useState<Goal[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
@@ -38,7 +36,6 @@ export default function AddTransactionScreen() {
   const [showFromAccounts, setShowFromAccounts] = useState(false);
   const [showToAccounts, setShowToAccounts] = useState(false);
   const [showCategorySheet, setShowCategorySheet] = useState(false);
-  const [useFromFund, setUseFromFund] = useState(false); // Toggle between account and fund
 
   const [formData, setFormData] = useState<TransactionFormData>({
     note: "",
@@ -46,7 +43,6 @@ export default function AddTransactionScreen() {
     amount: "",
     from_account_id: null,
     to_account_id: null,
-    fund_id: null,
     category_id: null,
   });
 
@@ -58,7 +54,6 @@ export default function AddTransactionScreen() {
     if (session) {
       fetchAccounts();
       fetchCategories();
-      fetchFunds();
     }
   }, [session]);
 
@@ -109,25 +104,6 @@ export default function AddTransactionScreen() {
     }
   };
 
-  const fetchFunds = async () => {
-    if (!session?.user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("goals")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .eq("status", "active")
-        .gt("saved_amount", 0) // Only show funds with money
-        .order("title", { ascending: true });
-
-      if (error) throw error;
-      setFunds(data || []);
-    } catch (error: any) {
-      console.error("Error fetching funds:", error);
-    }
-  };
-
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof TransactionFormData, string>> = {};
 
@@ -144,14 +120,39 @@ export default function AddTransactionScreen() {
       }
     }
 
+    const fundCategory =
+      formData.category_id &&
+      categories.find(
+        (c) => c.id === formData.category_id && c.category_type === "fund"
+      );
+
     if (formData.type === "expense") {
-      if (useFromFund) {
-        if (!formData.fund_id) {
-          newErrors.fund_id = "Fund selection is required";
+      if (!formData.from_account_id) {
+        newErrors.from_account_id = "From account is required for expenses";
+      }
+
+      if (fundCategory) {
+        const amountNum = parseFloat(formData.amount || "0");
+        const amountSmallest = Math.round(amountNum * 100);
+
+        if (
+          fundCategory.fund_balance !== null &&
+          amountSmallest > fundCategory.fund_balance
+        ) {
+          newErrors.amount = "Amount exceeds fund balance";
         }
-      } else {
-        if (!formData.from_account_id) {
-          newErrors.from_account_id = "From account is required for expenses";
+
+        if (
+          fundCategory.fund_account_id &&
+          formData.from_account_id &&
+          fundCategory.fund_account_id !== formData.from_account_id
+        ) {
+          newErrors.from_account_id =
+            "Use the account linked to this fund category";
+        }
+
+        if (!fundCategory.fund_account_id && !formData.from_account_id) {
+          newErrors.from_account_id = "Select an account for this fund";
         }
       }
     }
@@ -191,23 +192,9 @@ export default function AddTransactionScreen() {
         parseFloat(formData.amount) * 100
       );
 
-      // Get currency from the account or fund
+      // Get currency from the account
       let currency = "INR"; // default
-      let transactionType = formData.type;
-      
-      if (formData.type === "expense" && useFromFund && formData.fund_id) {
-        // Using fund for expense
-        const fund = funds.find((f) => f.id === formData.fund_id);
-        currency = fund?.currency || "INR";
-        transactionType = "fund_expense";
-        
-        // Validate fund has enough balance
-        if (fund && fund.saved_amount < amountInSmallestUnit) {
-          Alert.alert("Error", "Insufficient fund balance");
-          setSubmitting(false);
-          return;
-        }
-      } else if (formData.type === "expense" && formData.from_account_id) {
+      if (formData.type === "expense" && formData.from_account_id) {
         const account = accounts.find((a) => a.id === formData.from_account_id);
         currency = account?.currency || "INR";
       } else if (formData.type === "income" && formData.to_account_id) {
@@ -219,19 +206,70 @@ export default function AddTransactionScreen() {
       }
 
       // Insert transaction into Supabase
-      const { error } = await supabase.from("transactions").insert({
-        user_id: session.user.id,
-        note: formData.note.trim(),
-        type: transactionType,
-        amount: amountInSmallestUnit,
-        from_account_id: transactionType === "fund_expense" ? null : formData.from_account_id,
-        to_account_id: formData.to_account_id,
-        fund_id: transactionType === "fund_expense" ? formData.fund_id : null,
-        category_id: formData.category_id,
-        currency: currency,
-      });
+      const { data, error } = await supabase
+        .from("transactions")
+        .insert({
+          user_id: session.user.id,
+          note: formData.note.trim(),
+          type: formData.type,
+          amount: amountInSmallestUnit,
+          from_account_id: formData.from_account_id,
+          to_account_id: formData.to_account_id,
+          category_id: formData.category_id,
+          currency: currency,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      const fundCategory =
+        formData.type === "expense" &&
+        formData.category_id &&
+        categories.find(
+          (c) => c.id === formData.category_id && c.category_type === "fund"
+        );
+
+      if (fundCategory) {
+        const { error: fundError } = await supabase.rpc(
+          "adjust_category_fund_balance",
+          {
+            p_category_id: fundCategory.id,
+            p_amount_delta: -amountInSmallestUnit,
+            p_account_id: null,
+          }
+        );
+
+        if (fundError) {
+          await supabase.from("transactions").delete().eq("id", data.id);
+          throw fundError;
+        }
+
+        setCategories((prev) =>
+          prev.map((cat) =>
+            cat.id === fundCategory.id
+              ? {
+                  ...cat,
+                  fund_balance: Math.max(
+                    0,
+                    (cat.fund_balance || 0) - amountInSmallestUnit
+                  ),
+                }
+              : cat
+          )
+        );
+        setSelectedCategory((prev) =>
+          prev && prev.id === fundCategory.id
+            ? {
+                ...prev,
+                fund_balance: Math.max(
+                  0,
+                  (prev.fund_balance || 0) - amountInSmallestUnit
+                ),
+              }
+            : prev
+        );
+      }
 
       Alert.alert("Success", "Transaction added successfully", [
         {
@@ -264,24 +302,38 @@ export default function AddTransactionScreen() {
       // Reset account selections when type changes
       from_account_id: null,
       to_account_id: null,
-      fund_id: null,
       // Reset category for transfer type
       category_id: type === "transfer" ? null : formData.category_id,
     });
     setErrors({});
     setShowFromAccounts(false);
     setShowToAccounts(false);
-    setUseFromFund(false); // Reset fund toggle
     if (type === "transfer") {
       setSelectedCategory(null);
     }
   };
 
   const handleCategorySelect = (category: Category | null) => {
+    if (
+      category &&
+      category.category_type === "fund" &&
+      formData.type !== "expense"
+    ) {
+      Alert.alert(
+        "Unavailable",
+        "Fund categories can only be used for expenses."
+      );
+      return;
+    }
+
     setSelectedCategory(category);
     setFormData({
       ...formData,
       category_id: category?.id || null,
+      from_account_id:
+        category?.category_type === "fund"
+          ? category.fund_account_id
+          : formData.from_account_id,
     });
   };
 
@@ -376,209 +428,101 @@ export default function AddTransactionScreen() {
           )}
         </View>
 
-        {/* From Account or Fund (for Expense and Transfer) */}
+        {/* From Account (for Expense and Transfer) */}
         {(formData.type === "expense" || formData.type === "transfer") && (
           <View className="mb-6">
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-sm font-medium text-neutral-300">
-                From
-              </Text>
-              {formData.type === "expense" && funds.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => {
-                    setUseFromFund(!useFromFund);
-                    setFormData({
-                      ...formData,
-                      from_account_id: null,
-                      fund_id: null,
-                    });
-                  }}
-                  className="flex-row items-center"
-                >
-                  <MaterialIcons
-                    name={useFromFund ? "account-balance-wallet" : "account-balance"}
-                    size={16}
-                    color="#22c55e"
-                    style={{ marginRight: 4 }}
-                  />
-                  <Text className="text-green-500 text-xs font-medium">
-                    Use {useFromFund ? "Account" : "Savings Fund"}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {formData.type === "expense" && useFromFund ? (
-              // Fund Selection for Expenses
-              <>
-                {funds.length === 0 ? (
-                  <View className="bg-neutral-800 rounded-xl px-4 py-3">
-                    <Text className="text-neutral-500 text-base">
-                      No savings funds with balance available.
-                    </Text>
-                  </View>
-                ) : (
-                  <>
-                    <TouchableOpacity
-                      onPress={() => setShowFromAccounts(!showFromAccounts)}
-                      className="bg-neutral-800 rounded-xl px-4 py-3 flex-row items-center justify-between"
-                    >
-                      <View className="flex-row items-center flex-1">
-                        <MaterialIcons
-                          name="account-balance-wallet"
-                          size={20}
-                          color="white"
-                          style={{ marginRight: 12 }}
-                        />
-                        <Text className="text-white text-base flex-1">
-                          {formData.fund_id
-                            ? funds.find((f) => f.id === formData.fund_id)?.title ||
-                              "Select fund"
-                            : "Select savings fund"}
-                        </Text>
-                      </View>
-                      <MaterialIcons
-                        name={showFromAccounts ? "expand-less" : "expand-more"}
-                        size={24}
-                        color="white"
-                      />
-                    </TouchableOpacity>
-                    {showFromAccounts && (
-                      <View className="bg-neutral-800 rounded-xl mt-2">
-                        {funds.map((fund) => {
-                          const fundConfig = FUND_TYPE_CONFIG[fund.fund_type] || FUND_TYPE_CONFIG.budget_fund;
-                          return (
-                            <TouchableOpacity
-                              key={fund.id}
-                              onPress={() => {
-                                setFormData({
-                                  ...formData,
-                                  fund_id: fund.id,
-                                });
-                                setShowFromAccounts(false);
-                              }}
-                              className={`px-4 py-3 border-b border-neutral-700 ${
-                                formData.fund_id === fund.id ? "bg-green-600/20" : ""
-                              }`}
-                            >
-                              <View className="flex-row items-center">
-                                <Text className="text-xl mr-3">{fundConfig.emoji}</Text>
-                                <View className="flex-1">
-                                  <Text className="text-white text-base font-semibold">
-                                    {fund.title}
-                                  </Text>
-                                  <Text className="text-neutral-400 text-xs">
-                                    Balance: {(fund.saved_amount / 100).toLocaleString(
-                                      "en-IN",
-                                      {
-                                        style: "currency",
-                                        currency: fund.currency,
-                                      }
-                                    )}
-                                  </Text>
-                                </View>
-                                {formData.fund_id === fund.id && (
-                                  <MaterialIcons
-                                    name="check-circle"
-                                    size={20}
-                                    color="#22c55e"
-                                  />
-                                )}
-                              </View>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
-                    )}
-                  </>
-                )}
-                {errors.fund_id && (
-                  <Text className="text-red-500 text-sm mt-1">{errors.fund_id}</Text>
-                )}
-              </>
+            {accounts.length === 0 ? (
+              <View className="bg-neutral-800 rounded-xl px-4 py-3">
+                <Text className="text-neutral-500 text-base">
+                  No accounts available. Please add an account first.
+                </Text>
+              </View>
             ) : (
-              // Account Selection
               <>
-                {accounts.length === 0 ? (
-                  <View className="bg-neutral-800 rounded-xl px-4 py-3">
-                    <Text className="text-neutral-500 text-base">
-                      No accounts available. Please add an account first.
+                <TouchableOpacity
+                  onPress={() => setShowFromAccounts(!showFromAccounts)}
+                  className="bg-neutral-800 rounded-xl px-4 py-3 flex-row items-center justify-between"
+                >
+                  <View className="flex-row items-center flex-1">
+                    <MaterialIcons
+                      name="account-balance"
+                      size={20}
+                      color="white"
+                      style={{ marginRight: 12 }}
+                    />
+                    <Text className="text-white text-base flex-1">
+                      {formData.from_account_id
+                        ? accounts.find((a) => a.id === formData.from_account_id)
+                            ?.name || "Select account"
+                        : "Select account"}
                     </Text>
                   </View>
-                ) : (
-                  <>
-                    <TouchableOpacity
-                      onPress={() => setShowFromAccounts(!showFromAccounts)}
-                      className="bg-neutral-800 rounded-xl px-4 py-3 flex-row items-center justify-between"
-                    >
-                      <View className="flex-row items-center flex-1">
-                        <MaterialIcons
-                          name="account-balance"
-                          size={20}
-                          color="white"
-                          style={{ marginRight: 12 }}
-                        />
-                        <Text className="text-white text-base flex-1">
-                          {formData.from_account_id
-                            ? accounts.find((a) => a.id === formData.from_account_id)
-                                ?.name || "Select account"
-                            : "Select account"}
-                        </Text>
-                      </View>
-                      <MaterialIcons
-                        name={showFromAccounts ? "expand-less" : "expand-more"}
-                        size={24}
-                        color="white"
-                      />
-                    </TouchableOpacity>
-                    {showFromAccounts && (
-                      <View className="bg-neutral-800 rounded-xl mt-2">
-                        {accounts.map((account) => (
-                          <TouchableOpacity
-                            key={account.id}
-                            onPress={() => {
-                              setFormData({
-                                ...formData,
-                                from_account_id: account.id,
-                              });
-                              setShowFromAccounts(false);
-                            }}
-                            className={`px-4 py-3 border-b border-neutral-700 ${
-                              formData.from_account_id === account.id
-                                ? "bg-green-600/20"
-                                : ""
-                            }`}
-                          >
-                            <View className="flex-row items-center">
-                              <MaterialIcons
-                                name="account-balance"
-                                size={20}
-                                color="white"
-                                style={{ marginRight: 12 }}
-                              />
-                              <Text className="text-white text-base flex-1">
-                                {account.name}
-                              </Text>
-                              {formData.from_account_id === account.id && (
-                                <MaterialIcons
-                                  name="check-circle"
-                                  size={20}
-                                  color="#22c55e"
-                                />
-                              )}
-                            </View>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </>
+                  <MaterialIcons
+                    name={showFromAccounts ? "expand-less" : "expand-more"}
+                    size={24}
+                    color="white"
+                  />
+                </TouchableOpacity>
+                {showFromAccounts && (
+                  <View className="bg-neutral-800 rounded-xl mt-2">
+                    {(selectedCategory?.category_type === "fund" &&
+                    selectedCategory.fund_account_id
+                      ? accounts.filter(
+                          (account) =>
+                            account.id === selectedCategory.fund_account_id
+                        )
+                      : accounts
+                    ).map((account) => (
+                      <TouchableOpacity
+                        key={account.id}
+                        onPress={() => {
+                          setFormData({
+                            ...formData,
+                            from_account_id: account.id,
+                          });
+                          setShowFromAccounts(false);
+                        }}
+                        className={`px-4 py-3 border-b border-neutral-700 ${
+                          formData.from_account_id === account.id
+                            ? "bg-green-600/20"
+                            : ""
+                        }`}
+                      >
+                        <View className="flex-row items-center">
+                          <MaterialIcons
+                            name="account-balance"
+                            size={20}
+                            color="white"
+                            style={{ marginRight: 12 }}
+                          />
+                          <Text className="text-white text-base flex-1">
+                            {account.name}
+                          </Text>
+                          {formData.from_account_id === account.id && (
+                            <MaterialIcons
+                              name="check-circle"
+                              size={20}
+                              color="#22c55e"
+                            />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 )}
-                {errors.from_account_id && (
-                  <Text className="text-red-500 text-sm mt-1">
-                    {errors.from_account_id}
+                {selectedCategory?.category_type === "fund" && (
+                  <Text className="text-xs text-amber-400 mt-2">
+                    {selectedCategory.fund_account_id
+                      ? "Funds are tied to this account."
+                      : "Select which account this fund purchase should use."}
                   </Text>
                 )}
               </>
+            )}
+            {errors.from_account_id && (
+              <Text className="text-red-500 text-sm mt-1">
+                {errors.from_account_id}
+              </Text>
             )}
           </View>
         )}
@@ -622,6 +566,27 @@ export default function AddTransactionScreen() {
               </View>
               <MaterialIcons name="chevron-right" size={24} color="white" />
             </TouchableOpacity>
+            {selectedCategory?.category_type === "fund" && (
+              <View className="bg-neutral-900/60 rounded-xl px-4 py-3 mt-3">
+                <Text className="text-white text-sm font-semibold">
+                  Fund Category
+                </Text>
+                <Text className="text-green-400 text-base font-bold mt-1">
+                  Remaining ·{" "}
+                  {((selectedCategory.fund_balance || 0) / 100).toLocaleString(
+                    "en-IN",
+                    {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }
+                  )}{" "}
+                  {selectedCategory.fund_currency || "INR"}
+                </Text>
+                <Text className="text-neutral-400 text-xs mt-1">
+                  Spending more than this amount is not allowed.
+                </Text>
+              </View>
+            )}
           </View>
         )}
 

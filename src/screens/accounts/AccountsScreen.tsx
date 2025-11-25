@@ -69,7 +69,21 @@ function formatDate(dateString: string): string {
 export default function AccountsScreen() {
   const { session } = useSupabaseSession();
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [accountSavings, setAccountSavings] = useState<Record<string, number>>({});
+  const [accountFunds, setAccountFunds] = useState<
+    Record<
+      string,
+      {
+        total: number;
+        currency: string;
+        items: {
+          id: string;
+          name: string;
+          emoji: string;
+          balance: number;
+        }[];
+      }
+    >
+  >({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [formSheetVisible, setFormSheetVisible] = useState(false);
@@ -84,7 +98,7 @@ export default function AccountsScreen() {
 
   useEffect(() => {
     if (session && accounts.length > 0) {
-      fetchAccountSavings();
+      fetchAccountFunds();
     }
   }, [session, accounts]);
 
@@ -108,69 +122,151 @@ export default function AccountsScreen() {
     }
   };
 
-  const fetchAccountSavings = async () => {
+  const fetchAccountFunds = async () => {
     if (!session?.user) return;
 
     try {
-      const accountIds = accounts.map((acc) => acc.id);
-      if (accountIds.length === 0) {
-        setAccountSavings({});
-        return;
-      }
-
-      // Fetch all goal transactions (deposits) where from_account_id matches
-      const { data: goalDeposits, error: depositsError } = await supabase
-        .from("transactions")
-        .select("from_account_id, amount")
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id,name,emoji,fund_balance,fund_currency,fund_account_id,category_type")
         .eq("user_id", session.user.id)
-        .eq("type", "goal")
-        .in("from_account_id", accountIds);
+        .eq("category_type", "fund")
+        .not("fund_account_id", "is", null);
 
-      if (depositsError) throw depositsError;
+      if (error) throw error;
 
-      // Fetch all goal_withdraw transactions (withdrawals) where to_account_id matches
-      const { data: goalWithdrawals, error: withdrawalsError } = await supabase
-        .from("transactions")
-        .select("to_account_id, amount")
-        .eq("user_id", session.user.id)
-        .eq("type", "goal_withdraw")
-        .in("to_account_id", accountIds);
+      const allocations: Record<
+        string,
+        {
+          total: number;
+          currency: string;
+          items: {
+            id: string;
+            name: string;
+            emoji: string;
+            balance: number;
+          }[];
+        }
+      > = {};
 
-      if (withdrawalsError) throw withdrawalsError;
+      (data || []).forEach((category) => {
+        const accountId = category.fund_account_id as string | null;
+        if (!accountId) return;
 
-      // Calculate savings for each account
-      const savings: Record<string, number> = {};
+        const balance = category.fund_balance || 0;
+        if (!allocations[accountId]) {
+          const accountCurrency =
+            accounts.find((a) => a.id === accountId)?.currency || "INR";
+          allocations[accountId] = {
+            total: 0,
+            currency: accountCurrency,
+            items: [],
+          };
+        }
 
-      // Initialize all accounts with 0 savings
-      accountIds.forEach((id) => {
-        savings[id] = 0;
+        allocations[accountId].total += balance;
+        allocations[accountId].items.push({
+          id: category.id,
+          name: category.name,
+          emoji: category.emoji,
+          balance,
+        });
       });
 
-      // Add deposits (money going into savings)
-      goalDeposits?.forEach((tx) => {
-        if (tx.from_account_id) {
-          savings[tx.from_account_id] = (savings[tx.from_account_id] || 0) + tx.amount;
+      // Ensure entries exist for accounts even if no funds
+      accounts.forEach((account) => {
+        if (!allocations[account.id]) {
+          allocations[account.id] = {
+            total: 0,
+            currency: account.currency,
+            items: [],
+          };
         }
       });
 
-      // Subtract withdrawals (money coming back from savings)
-      goalWithdrawals?.forEach((tx) => {
-        if (tx.to_account_id) {
-          savings[tx.to_account_id] = (savings[tx.to_account_id] || 0) - tx.amount;
-        }
-      });
-
-      setAccountSavings(savings);
+      setAccountFunds(allocations);
     } catch (error: any) {
-      console.error("Error fetching account savings:", error);
-      // Don't show alert for savings fetch errors, just log it
+      console.error("Error fetching account fund allocations:", error);
+      setAccountFunds({});
     }
   };
 
+  const renderFundsSection = (account: Account) => {
+    const fundInfo = accountFunds[account.id];
+    if (!fundInfo) return null;
+
+    const unallocated = Math.max(account.balance - fundInfo.total, 0);
+
+    return (
+      <View className="mt-3 bg-neutral-900/60 rounded-2xl p-4">
+        <Text className="text-white text-sm font-semibold mb-2">
+          Funds Allocated
+        </Text>
+        {fundInfo.items.length === 0 ? (
+          <Text className="text-neutral-400 text-xs">
+            No money reserved. All of this balance is unallocated.
+          </Text>
+        ) : (
+          fundInfo.items.map((item) => (
+            <View
+              key={item.id}
+              className="flex-row items-center justify-between mb-2"
+            >
+              <View className="flex-row items-center">
+                <Text style={{ fontSize: 18, marginRight: 8 }}>{item.emoji}</Text>
+                <Text className="text-white text-sm">{item.name}</Text>
+              </View>
+              <Text className="text-green-400 text-sm font-semibold">
+                {formatBalance(item.balance, fundInfo.currency)}
+              </Text>
+            </View>
+          ))
+        )}
+        <View className="mt-3 pt-3 border-t border-neutral-800">
+          <Text className="text-neutral-400 text-xs uppercase tracking-wide">
+            Unallocated
+          </Text>
+          <Text className="text-white text-lg font-bold mt-1">
+            {formatBalance(unallocated, account.currency)}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  const formatBalanceDisplay = (account: Account) => {
+    const fundInfo = accountFunds[account.id];
+    const unallocated = Math.max(
+      account.balance - (fundInfo?.total || 0),
+      0
+    );
+    return {
+      total: formatBalance(account.balance, account.currency),
+      unallocated: formatBalance(unallocated, account.currency),
+    };
+  };
+
+  const renderBalanceSection = (account: Account) => {
+    const fundInfo = accountFunds[account.id];
+    return (
+      <>
+        <View className="mt-2">
+          <Text className="text-neutral-400 text-sm mb-1">Balance</Text>
+          <Text className="text-white text-2xl font-bold">
+            {formatBalance(account.balance, account.currency)}
+          </Text>
+        </View>
+        {fundInfo && (
+          <View className="mt-2">
+            {renderFundsSection(account)}
+          </View>
+        )}
+      </>
+    );
+  };
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchAccounts();
-    // fetchAccountSavings will be called automatically via useEffect when accounts update
   };
 
   const handleAddAccount = () => {
@@ -343,15 +439,8 @@ export default function AccountsScreen() {
                   <Text className="text-white text-2xl font-bold">
                     {formatBalance(account.balance, account.currency)}
                   </Text>
-                  {accountSavings[account.id] !== undefined && accountSavings[account.id] > 0 && (
-                    <View className="mt-2 pt-2 border-t border-neutral-700">
-                      <Text className="text-neutral-400 text-sm mb-1">In Savings</Text>
-                      <Text className="text-green-400 text-xl font-semibold">
-                        {formatBalance(accountSavings[account.id], account.currency)}
-                      </Text>
-                    </View>
-                  )}
                 </View>
+                {renderFundsSection(account)}
               </TouchableOpacity>
             ))}
           </View>
@@ -401,15 +490,8 @@ export default function AccountsScreen() {
                   <Text className="text-white text-2xl font-bold">
                     {formatBalance(account.balance, account.currency)}
                   </Text>
-                  {accountSavings[account.id] !== undefined && accountSavings[account.id] > 0 && (
-                    <View className="mt-2 pt-2 border-t border-neutral-700">
-                      <Text className="text-neutral-400 text-sm mb-1">In Savings</Text>
-                      <Text className="text-green-400 text-xl font-semibold">
-                        {formatBalance(accountSavings[account.id], account.currency)}
-                      </Text>
-                    </View>
-                  )}
                 </View>
+                {renderFundsSection(account)}
               </TouchableOpacity>
             ))}
           </View>

@@ -1,239 +1,112 @@
-# Savings Funds Implementation Guide
+# Fund Categories Implementation Guide
 
 ## Overview
 
-This implementation transforms the "Goals" feature into a comprehensive **Savings Funds** system that intelligently handles different types of savings with context-aware behaviors and messaging.
+Fund tracking now lives inside **Categories**. Each category can behave either as a regular label or as a **fund category** that carries its own budget balance. This keeps the experience focused on “how much of this account is already spoken for” without shuffling money between hidden accounts or goals.
 
-## What Changed
+## What’s New
 
-### 1. **Conceptual Shift: Goals → Savings Funds**
-- Renamed "Goals" to "Savings Funds" throughout the UI
-- Added three distinct fund types with different behaviors
-- Added fund status management (active, completed)
+1. **Category Types**
+   - `regular`: behaves exactly like the old system (pure tagging)
+   - `fund`: keeps track of an allocated balance, tied to a specific account/currency
 
-### 2. **Fund Types**
+2. **Funding Workflow**
+   - When creating/editing a category, choose “Fund Category”
+   - Pick the source account and optionally set an initial allocation
+   - Allocate/withdraw later from the Categories screen (no money actually leaves the real account; it’s a label that reserves part of the balance)
 
-#### 🎯 Target Goal
-- **Purpose**: Save for a specific purchase or milestone
-- **Examples**: MacBook, Vacation, Car
-- **Behavior**: 
-  - Can be marked as "Completed" when achieved
-  - Shows celebration message on completion
-  - Suggests moving remaining funds back to account
+3. **Transaction Workflow**
+   - Selecting a fund category on the Add Transaction screen automatically enforces:
+     - Matching account (you must spend from the account that owns the fund)
+     - Amount ≤ remaining balance
+     - After logging the expense, the fund balance is reduced via `adjust_category_fund_balance`
 
-#### 🛡️ Emergency Fund
-- **Purpose**: Build a safety net for unexpected expenses
-- **Examples**: Medical, Job Loss, Emergency Repairs
-- **Behavior**:
-  - Never "completed" - ongoing protection
-  - Neutral messaging when used (no celebration)
-  - Suggests replenishing after withdrawal
-  - Stays active after use
-
-#### 📦 Budget Fund
-- **Purpose**: Allocate money for planned spending over time
-- **Examples**: Clothing, Groceries, Entertainment
-- **Behavior**:
-  - Allocated budget that gets spent over time
-  - Track remaining budget vs. allocated amount
-  - Can be replenished/refilled when needed
-  - Never completes - ongoing spending envelope
-  - Shows "Budget Remaining" instead of "Progress"
-
-### 3. **New Transaction Flow**
-
-#### Using Funds for Expenses
-Users can now create expenses directly from savings funds:
-
-1. **Create Expense** → Select "Expense" type
-2. **Toggle Source** → Switch from "Account" to "Savings Fund"
-3. **Select Fund** → Choose which fund to use
-4. **Complete Transaction** → Fund balance automatically deducted
-
-Benefits:
-- No need to withdraw to account first
-- Cleaner transaction history
-- Tracks which fund was used for what purpose
-
-#### New Transaction Type: `fund_expense`
-- Automatically used when expense is created from a fund
-- Directly deducts from fund's `saved_amount`
-- Links transaction to fund via `fund_id`
-
-### 4. **Fund Status Management**
-
-#### Status States
-- **Active**: Currently saving, all features enabled
-- **Completed**: Target achieved (Target Goals only) - shown in separate "Completed Goals" section
-
-#### Status Actions Available
-- **Mark Complete**: For Target Goals when achieved (shows celebration and moves to completed section)
-
-### 5. **Contextual Messaging**
-
-The system now provides appropriate messaging based on fund type:
-
-| Situation | Target Goal | Emergency Fund | Budget Fund |
-|-----------|-------------|----------------|-------------------|
-| Fund Created | "Start saving!" | "Build your safety net" | "Long-term growth" |
-| Fund Used | "Did you achieve it?" | "Replenish when possible" | "Keep building" |
-| Withdrawal | Offer completion | Neutral message | Neutral message |
-| Target Reached | 🎉 Celebration | N/A | Encouragement |
+4. **Live Budget Insight**
+   - Category cards show current fund balance + linked account
+   - Add Transaction screen surfaces remaining budget while you type
 
 ## Database Changes
 
-### New Columns in `goals` Table
+### Categories Table (`sql/supabase_category_funds_migration.sql`)
+New columns:
+| Column | Description |
+| --- | --- |
+| `category_type` | `regular` or `fund` |
+| `fund_balance` | Current budget (smallest currency unit) |
+| `fund_currency` | Currency of the allocation |
+| `fund_account_id` | Account this fund belongs to |
+
+Helper function:
 ```sql
-- fund_type: TEXT (target_goal | emergency_fund | budget_fund)
-- status: TEXT (active | completed)
+adjust_category_fund_balance(p_category_id UUID,
+                             p_amount_delta BIGINT,
+                             p_account_id UUID DEFAULT NULL)
 ```
+- Validates ownership + category type
+- Positive delta allocates funds (ties account/currency on first allocation)
+- Negative delta withdraws/spend; prevents negative balances
 
-### New Column in `transactions` Table
-```sql
-- fund_id: UUID (references goals.id)
-```
+### Transactions Table
+No new columns required. We simply insert normal `expense` rows and then adjust the category balance via the function above. This keeps historical transactions intact while fund balances stay synced.
 
-### New Transaction Type
-```sql
-- fund_expense: Direct expense from a fund
-```
+## Frontend Highlights
 
-## Migration Instructions
+### Categories Screen (`src/screens/categories/CategoriesScreen.tsx`)
+- Shows badges for fund categories
+- Displays fund balance + linked account
+- “Allocate” / “Withdraw” actions call the RPC above
+- Category form lets users toggle type, choose account, and set an optional initial allocation
 
-### Step 1: Run Database Migration
-```bash
-# Execute the migration SQL file in your Supabase SQL editor
-# File: sql/supabase_funds_enhancement_migration.sql
-```
+### Category Form Sheet (`src/screens/categories/components/CategoryFormSheet.tsx`)
+- Accepts the accounts list from the parent
+- Validates that fund categories have a source account
+- Offers optional initial funding when creating a new fund category
 
-This migration:
-- Adds `fund_type` and `status` columns to goals
-- Adds `fund_id` column to transactions
-- Creates the `fund_expense` transaction type
-- Updates triggers to handle fund expenses
-- Sets all existing goals to `target_goal` type with `active` status
+### Add Transaction Screen (`src/screens/transactions/AddTransactionScreen.tsx`)
+- Automatically locks the account picker to the fund’s account
+- Shows remaining budget when a fund category is selected
+- Blocks spending more than the reserved amount
+- After saving the expense, updates the category balance (and rolls back the transaction if the RPC fails)
 
-### Step 2: Test the Features
+### Category Picker (`src/screens/transactions/components/CategorySelectSheet.tsx`)
+- Highlights fund categories and displays their remaining balance
 
-#### Creating a New Fund
-1. Go to Goals/Funds screen
-2. Tap "Create Savings Fund"
-3. Select fund type (Target Goal, Emergency Fund, or Budget Fund)
-4. Enter title and target amount
-5. Fund is created with `active` status
+## Example Flow
 
-#### Using a Fund for Expense
-1. Go to Add Transaction screen
-2. Select "Expense" type
-3. Tap "Use Savings Fund" toggle (appears if you have active funds)
-4. Select the fund you want to use
-5. Enter amount and category
-6. Submit → Fund balance automatically deducted
+### Clothing Envelope
+1. Create category “Clothing 👕”
+2. Pick “Fund Category”, choose “HDFC Salary” account, allocate ₹40,000
+3. Fund card now shows “₹40,000 remaining”
+4. Log an expense for ₹3,000 using account “HDFC Salary” + category “Clothing”
+5. Submission succeeds → fund balance becomes ₹37,000
 
-#### Managing Fund Status
-1. View fund on Goals screen
-2. Available actions based on fund type:
-   - **Target Goals**: "✓ Mark as Complete" button appears
-   - **Emergency/Budget**: No status actions (remain active)
-3. Tap "Mark as Complete" → Fund moves to "🎉 Completed Goals" section
-4. Completed funds show "Withdraw Remaining Funds" button if balance > 0
+### Groceries (Regular Category)
+1. Create category “Groceries 🥑” (regular)
+2. No accounts or balances attached
+3. Expenses tagged with Groceries behave exactly like before
 
-## User Experience Improvements
+## How to Deploy
 
-### Before (Problems)
-❌ All goals treated the same way  
-❌ Forced celebration for emergency fund usage  
-❌ Must withdraw to account before using  
-❌ No way to indicate goal completion  
-❌ Confusing flow for different saving scenarios  
+1. Run migrations in order:
+   - `sql/supabase_category_funds_migration.sql`
+   - (Optional) `sql/fix_goals_fund_type_constraint.sql` if earlier constraint errors persist
 
-### After (Solutions)
-✅ Different fund types with appropriate behaviors  
-✅ Context-aware messaging based on fund type  
-✅ Direct expense from fund without withdrawal  
-✅ Clear completion flow for target goals  
-✅ Flexible status management  
-✅ Better tracking of fund usage  
+2. Rebuild the app / reload metro bundler
 
-## Code Structure
+3. Test flows:
+   - Create fund + regular categories
+   - Allocate / withdraw funds
+   - Log expenses with both types
+   - Ensure validation prevents overspending
 
-### Type Definitions
-- `src/types/goal.ts` - Fund types, status, and configuration
-- `src/types/transaction.ts` - Added `fund_expense` type and `fund_id`
-
-### UI Components
-- `src/screens/goals/GoalsScreen.tsx` - Fund management with type selection
-- `src/screens/transactions/AddTransactionScreen.tsx` - Fund selection for expenses
-
-### Database
-- `sql/supabase_funds_enhancement_migration.sql` - Complete migration script
-
-## Example Scenarios
-
-### Scenario 1: MacBook Purchase (Target Goal)
-1. User creates "MacBook Fund" as Target Goal - ₹80,000
-2. User saves ₹80,000 over time
-3. User finds MacBook for ₹75,000
-4. User creates expense directly from MacBook Fund
-5. System shows: "Goal Achieved? You have ₹5,000 remaining"
-6. User marks as Completed → 🎉 Celebration message
-7. User withdraws remaining ₹5,000 to account
-
-### Scenario 2: Emergency Hospital Bill (Emergency Fund)
-1. User creates "Emergency Medical" as Emergency Fund
-2. User saves ₹1,50,000 over time
-3. Emergency: ₹1,00,000 hospital bill
-4. User creates expense from Emergency Fund
-5. System shows neutral message: "Fund balance: ₹50,000"
-6. System suggests: "Consider replenishing your emergency fund"
-7. Fund remains active for future emergencies
-
-### Scenario 3: Clothing Budget (Budget Fund)
-1. User creates "Clothing Fund" as Budget Fund - ₹20,000 allocated
-2. User buys shoes for ₹3,000 → Balance: ₹17,000 remaining
-3. User buys t-shirt for ₹1,500 → Balance: ₹15,500 remaining
-4. User always knows: "I have ₹15,500 left for clothing"
-5. When balance gets low, user can replenish the budget
-6. Fund shows "Budget Remaining: ₹15,500 / ₹20,000"
-
-## Technical Notes
-
-### Transaction Handling
-- `expense` + `from_account_id` = Regular expense from account
-- `fund_expense` + `fund_id` = Direct expense from fund
-- Account balance unaffected by `fund_expense` transactions
-- Fund `saved_amount` automatically deducted via database trigger
-
-### Status Filtering
-- Main Goals screen shows active funds in the main section
-- Completed target goals shown in separate "🎉 Completed Goals" section below
-- All funds remain visible - completed goals serve as achievement history
-
-### Validation
-- Fund selection validates sufficient balance
-- Amount validation checks fund balance before transaction
-- Currency matching between fund and transaction
-
-## Future Enhancements (Optional)
-
-1. **Fund Transfer**: Move money between funds
-2. **Auto-completion**: Automatically mark as complete when target reached
-3. **Fund Analytics**: Track fund growth over time
-4. **Recurring Contributions**: Automatic periodic deposits
-5. **Fund Templates**: Quick creation with pre-filled common goals
-6. **Delete Completed Goals**: Option to permanently delete old completed goals
-
-## Support
-
-If you encounter any issues:
-1. Check that the migration script ran successfully
-2. Verify all existing goals have `fund_type` and `status` set
-3. Check database triggers are active
-4. Review console logs for any errors
+## Future Enhancements
+- Account-level “available vs allocated” views
+- Fund history per category
+- Automation rules (monthly top-ups)
+- Shared budget notifications
 
 ---
 
-**Implementation Date**: November 2024  
-**Version**: 1.0  
-**Status**: ✅ Complete
+**Implementation Date**: November 2025  
+**Status**: ✅ Fund categories live across Categories + Transactions
 

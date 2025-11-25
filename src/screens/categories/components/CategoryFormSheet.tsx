@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { View, Text, TextInput, TouchableOpacity, Platform, FlatList, Dimensions, Modal } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, FlatList, Dimensions, Modal, Alert } from "react-native";
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
@@ -7,10 +7,11 @@ import {
   BottomSheetFlatList,
 } from "@gorhom/bottom-sheet";
 import { MaterialIcons } from "@expo/vector-icons";
-import { Category, CategoryFormData } from "@/types/category";
+import { Category, CategoryFormData, CategoryType } from "@/types/category";
 import { PrimaryButton } from "@/screens/auth/components/PrimaryButton";
 import { CATEGORY_COLORS } from "@/constants/categoryColors";
-import { EMOJI_CATEGORIES, ALL_EMOJIS } from "@/constants/emojis";
+import { EMOJI_CATEGORIES } from "@/constants/emojis";
+import { Account } from "@/types/account";
 
 type CategoryFormSheetProps = {
   visible: boolean;
@@ -18,6 +19,8 @@ type CategoryFormSheetProps = {
   onClose: () => void;
   onSubmit: (data: CategoryFormData) => Promise<void>;
   loading?: boolean;
+  accounts: Account[];
+  accountFundTotals: Record<string, number>;
 };
 
 export function CategoryFormSheet({
@@ -26,6 +29,8 @@ export function CategoryFormSheet({
   onClose,
   onSubmit,
   loading = false,
+  accounts,
+  accountFundTotals,
 }: CategoryFormSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["80%", "95%"], []);
@@ -34,6 +39,9 @@ export function CategoryFormSheet({
     name: "",
     emoji: "📁",
     background_color: CATEGORY_COLORS[0],
+    category_type: "regular",
+    fund_account_id: null,
+    initial_fund_amount: "",
   });
   const [errors, setErrors] = useState<
     Partial<Record<keyof CategoryFormData, string>>
@@ -43,6 +51,27 @@ export function CategoryFormSheet({
   
   const screenWidth = Dimensions.get("window").width;
   const emojiSize = (screenWidth - 64) / 8; // 8 emojis per row with padding
+  const formatAvailableDisplay = useCallback(
+    (amount: number, currency: string | undefined | null) => {
+      const mainUnit = amount / 100;
+      return `${currency || "INR"} ${mainUnit.toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+    },
+    []
+  );
+
+  const getAvailableForAccount = useCallback(
+    (accountId: string | null) => {
+      if (!accountId) return 0;
+      const account = accounts.find((acc) => acc.id === accountId);
+      if (!account) return 0;
+      const allocated = accountFundTotals[accountId] || 0;
+      return Math.max(account.balance - allocated, 0);
+    },
+    [accounts, accountFundTotals]
+  );
 
   useEffect(() => {
     if (visible) {
@@ -83,17 +112,23 @@ export function CategoryFormSheet({
         name: category.name,
         emoji: category.emoji,
         background_color: category.background_color,
+        category_type: category.category_type,
+        fund_account_id: category.fund_account_id,
+        initial_fund_amount: "",
       });
     } else {
       setFormData({
         name: "",
         emoji: "📁",
         background_color: CATEGORY_COLORS[0],
+        category_type: "regular",
+        fund_account_id: accounts[0]?.id || null,
+        initial_fund_amount: "",
       });
     }
     setErrors({});
     setShowEmojiMenu(false);
-  }, [category, visible]);
+  }, [category, visible, accounts]);
 
 
   const validate = (): boolean => {
@@ -105,6 +140,25 @@ export function CategoryFormSheet({
 
     if (!formData.emoji.trim()) {
       newErrors.emoji = "Emoji is required";
+    }
+
+    if (formData.category_type === "fund") {
+      if (!formData.fund_account_id) {
+        newErrors.fund_account_id = "Select an account for this fund";
+      }
+
+      if (!category && formData.initial_fund_amount.trim()) {
+        const amountNum = parseFloat(formData.initial_fund_amount);
+        if (isNaN(amountNum) || amountNum < 0) {
+          newErrors.initial_fund_amount = "Enter a valid amount";
+        } else {
+          const amountSmallest = Math.round(amountNum * 100);
+          const available = getAvailableForAccount(formData.fund_account_id);
+          if (amountSmallest > available) {
+            newErrors.initial_fund_amount = "Amount exceeds unallocated balance";
+          }
+        }
+      }
     }
 
     setErrors(newErrors);
@@ -245,6 +299,59 @@ export function CategoryFormSheet({
           )}
         </View>
 
+        {/* Category Type */}
+        <View style={{ marginBottom: 20 }}>
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "500",
+              color: "#d4d4d4",
+              marginBottom: 12,
+            }}
+          >
+            Category Type
+          </Text>
+          <View style={{ flexDirection: "row" }}>
+            {(["regular", "fund"] as CategoryType[]).map((type) => (
+              <TouchableOpacity
+                key={type}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  marginRight: type === "regular" ? 8 : 0,
+                  backgroundColor:
+                    formData.category_type === type ? "#22c55e" : "#262626",
+                  alignItems: "center",
+                }}
+                onPress={() => {
+                  if (category && category.fund_balance > 0 && type === "regular") {
+                    Alert.alert(
+                      "Cannot convert",
+                      "Withdraw remaining funds before converting to a regular category."
+                    );
+                    return;
+                  }
+                  setFormData((prev) => ({
+                    ...prev,
+                    category_type: type,
+                  }));
+                }}
+              >
+                <Text
+                  style={{
+                    color: "#ffffff",
+                    fontWeight: "600",
+                    fontSize: 14,
+                  }}
+                >
+                  {type === "regular" ? "Regular" : "Fund"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         {/* Background Color */}
         <View style={{ marginBottom: 24 }}>
           <Text
@@ -294,6 +401,161 @@ export function CategoryFormSheet({
             ))}
           </View>
         </View>
+
+        {formData.category_type === "fund" && (
+          <View style={{ marginBottom: 24 }}>
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "500",
+                color: "#d4d4d4",
+                marginBottom: 8,
+              }}
+            >
+              Fund Account
+            </Text>
+
+            {accounts.length === 0 ? (
+              <View
+                style={{
+                  backgroundColor: "#262626",
+                  borderRadius: 12,
+                  padding: 16,
+                }}
+              >
+                <Text style={{ color: "#f87171", fontSize: 14 }}>
+                  You need at least one account to create a fund category.
+                </Text>
+              </View>
+            ) : (
+              <>
+                {category && category.fund_account_id ? (
+                  <View
+                    style={{
+                      backgroundColor: "#262626",
+                      borderRadius: 12,
+                      padding: 16,
+                    }}
+                  >
+                    <Text style={{ color: "#ffffff", fontWeight: "600" }}>
+                      {
+                        accounts.find(
+                          (acc) => acc.id === category.fund_account_id
+                        )?.name
+                      }
+                    </Text>
+                    <Text style={{ color: "#9ca3af", fontSize: 12, marginTop: 4 }}>
+                      Account is locked while funds remain in this category.
+                    </Text>
+                    <Text style={{ color: "#86efac", fontSize: 12, marginTop: 4 }}>
+                      Available ·{" "}
+                      {formatAvailableDisplay(
+                        getAvailableForAccount(category.fund_account_id),
+                        accounts.find((acc) => acc.id === category.fund_account_id)
+                          ?.currency
+                      )}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={{ backgroundColor: "#262626", borderRadius: 12 }}>
+                    {accounts.map((account) => (
+                      <TouchableOpacity
+                        key={account.id}
+                        onPress={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            fund_account_id: account.id,
+                          }))
+                        }
+                        style={{
+                          padding: 16,
+                          borderBottomWidth:
+                            account.id ===
+                            accounts[accounts.length - 1]?.id
+                              ? 0
+                              : 1,
+                          borderBottomColor: "#1f1f1f",
+                          backgroundColor:
+                            formData.fund_account_id === account.id
+                              ? "rgba(34,197,94,0.15)"
+                              : "transparent",
+                        }}
+                      >
+                        <Text
+                          style={{ color: "#ffffff", fontWeight: "600" }}
+                        >
+                          {account.name}
+                        </Text>
+                        <Text style={{ color: "#9ca3af", fontSize: 12, marginTop: 2 }}>
+                          Currency · {account.currency}
+                        </Text>
+                        <Text style={{ color: "#86efac", fontSize: 12, marginTop: 2 }}>
+                          Available ·{" "}
+                          {formatAvailableDisplay(
+                            getAvailableForAccount(account.id),
+                            account.currency
+                          )}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
+            {errors.fund_account_id && (
+              <Text style={{ color: "#ef4444", fontSize: 14, marginTop: 4 }}>
+                {errors.fund_account_id}
+              </Text>
+            )}
+
+            {!category && (
+              <View style={{ marginTop: 16 }}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "500",
+                    color: "#d4d4d4",
+                    marginBottom: 8,
+                  }}
+                >
+                  Initial Allocation (optional)
+                </Text>
+                <TextInput
+                  value={formData.initial_fund_amount}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, initial_fund_amount: text })
+                  }
+                  placeholder="0.00"
+                  placeholderTextColor="#6b7280"
+                  keyboardType="decimal-pad"
+                  style={{
+                    backgroundColor: "#262626",
+                    borderRadius: 12,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    color: "#ffffff",
+                    fontSize: 16,
+                  }}
+                />
+                {errors.initial_fund_amount && (
+                  <Text style={{ color: "#ef4444", fontSize: 14, marginTop: 4 }}>
+                    {errors.initial_fund_amount}
+                  </Text>
+                )}
+                {formData.fund_account_id && (
+                  <Text style={{ color: "#9ca3af", fontSize: 12, marginTop: 4 }}>
+                    Available to allocate ·{" "}
+                    {formatAvailableDisplay(
+                      getAvailableForAccount(formData.fund_account_id),
+                      accounts.find((acc) => acc.id === formData.fund_account_id)
+                        ?.currency
+                    )}
+                  </Text>
+                )}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Submit Button */}
         <PrimaryButton

@@ -121,16 +121,27 @@ export function CategorySelectSheet({
       >
         <Text style={{ fontSize: 24 }}>{item.emoji}</Text>
       </View>
-      <Text
-        style={{
-          color: "#ffffff",
-          fontSize: 16,
-          fontWeight: "500",
-          flex: 1,
-        }}
-      >
-        {item.name}
-      </Text>
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{
+            color: "#ffffff",
+            fontSize: 16,
+            fontWeight: "500",
+          }}
+        >
+          {item.name}
+        </Text>
+        {item.category_type === "fund" && (
+          <Text style={{ color: "#86efac", fontSize: 12, marginTop: 4 }}>
+            Fund · Remaining{" "}
+            {((item.fund_balance || 0) / 100).toLocaleString("en-IN", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}{" "}
+            {item.fund_currency || "INR"}
+          </Text>
+        )}
+      </View>
       {selectedCategoryId === item.id && (
         <MaterialIcons name="check-circle" size={24} color="#22c55e" />
       )}
