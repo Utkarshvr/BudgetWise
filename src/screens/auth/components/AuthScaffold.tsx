@@ -1,5 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import {
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -52,38 +53,21 @@ export function AuthScaffold({
             }}
             bounces={false}
           >
-            <View className="gap-8 py-8" style={{ justifyContent: "center", flexGrow: 1 }}>
-              <View className="gap-3">
-                <View className="h-16 w-16 overflow-hidden rounded-2xl bg-neutral-900/20">
-                  <LinearGradient
-                    colors={["#0f172a", "#4338ca", "#14b8a6"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={{
-                      flex: 1,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Text className="text-lg font-semibold uppercase text-white">
-                      BT
-                    </Text>
-                  </LinearGradient>
-                </View>
-                <Text className="text-xs font-semibold uppercase tracking-[0.5em] text-neutral-500 dark:text-neutral-400">
-                  Budget Tracker
-                </Text>
-                <Text className="text-3xl font-semibold text-neutral-900 dark:text-white">
-                  {title}
-                </Text>
-                {subtitle ? (
-                  <Text className="text-base text-neutral-500 dark:text-neutral-400">
-                    {subtitle}
-                  </Text>
-                ) : null}
-              </View>
+            <View
+              className="gap-8 py-8"
+              style={{
+                justifyContent: "center",
+                flexGrow: 1,
+                alignItems: "center",
+              }}
+            >
+              <Image
+                source={require("@/assets/brand/icon.png")}
+                style={{ width: 120, height: 120, borderRadius: 999 }}
+                resizeMode="contain"
+              />
 
-              <View className="gap-6 rounded-3xl border border-neutral-100 bg-white/90 p-6 shadow-2xl shadow-neutral-900/10 dark:border-neutral-800 dark:bg-neutral-900/70 dark:shadow-black/30">
+              <View className="w-full gap-6 rounded-3xl border border-neutral-100 bg-white/90 p-6 shadow-2xl shadow-neutral-900/10 dark:border-neutral-800 dark:bg-neutral-900/70 dark:shadow-black/30">
                 {children}
               </View>
             </View>
@@ -96,5 +80,3 @@ export function AuthScaffold({
     </View>
   );
 }
-
-

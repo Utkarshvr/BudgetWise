@@ -42,7 +42,7 @@ export default function SignInScreen() {
   return (
     <AuthScaffold
       title="Welcome back"
-      subtitle="Sign in to Budget Tracker to keep watching your spending."
+      subtitle="Sign in to BudgetWise to manage your finances."
       footer={
         <Text className="text-base text-neutral-500 dark:text-neutral-400">
           New here?{" "}
