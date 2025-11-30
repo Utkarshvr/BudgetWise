@@ -34,7 +34,7 @@ export function CategoryCard({
 
   return (
     <View
-      className="border border-border rounded-2xl mb-3 overflow-hidden"
+      className="rounded-xl mb-3 overflow-hidden"
       style={{
         backgroundColor:
           category.category_type === "expense"

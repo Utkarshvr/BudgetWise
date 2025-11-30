@@ -18,8 +18,8 @@ const darkColors = {
 
   // Muted text / surfaces
   muted: {
-    DEFAULT: "#111827", // bg-muted
-    foreground: "#9ca3af", // text-muted-foreground
+    DEFAULT: "#262626", // bg-muted (neutral-800)
+    foreground: "#a3a3a3", // text-muted-foreground (neutral-400)
   },
 
   // Primary / accent
@@ -32,7 +32,7 @@ const darkColors = {
   },
 
   // Generic borders / inputs / focus
-  border: "#1f2937",
+  border: "#404040", // neutral-700
   input: "#111827",
   ring: "#22c55e",
 
@@ -210,7 +210,7 @@ export const lightTheme = { colors: lightColors };
 // Default export used in most of the app today (dark-first)
 export const theme = darkTheme;
 
-export type ThemeColors = typeof darkColors;
+export type ThemeColors = typeof darkColors | typeof lightColors;
 
 export function useThemeColors(): ThemeColors {
   const scheme = useColorScheme();

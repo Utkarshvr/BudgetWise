@@ -16,7 +16,7 @@ module.exports = {
         // App semantic colors (inspired by modern design systems / shadcn)
         background: {
           DEFAULT: "#171717", // page background (neutral-900)
-          subtle: "#262626",  // slightly lifted areas (neutral-800)
+          subtle: "#262626", // slightly lifted areas (neutral-800)
         },
         foreground: "#f9fafb", // primary text on dark background (slate-50)
 
@@ -26,8 +26,8 @@ module.exports = {
         },
 
         muted: {
-          DEFAULT: "#111827", // muted surfaces / chips
-          foreground: "#9ca3af", // muted text (neutral-400)
+          DEFAULT: "#262626", // bg-muted (neutral-800)
+          foreground: "#a3a3a3", // text-muted-foreground (neutral-400)
         },
 
         primary: {
@@ -38,7 +38,7 @@ module.exports = {
           strong: "#16a34a", // stronger primary state (green-600)
         },
 
-        border: "#1f2937", // card/border outlines (slate-800)
+        border: "#404040", // neutral-700
         input: "#111827", // input backgrounds (slate-900)
         ring: "#22c55e", // focus ring / selection
 

@@ -8,7 +8,7 @@ type CategoriesTabsProps = {
 
 export function CategoriesTabs({ activeTab, onChangeTab }: CategoriesTabsProps) {
   return (
-    <View className="flex-row mb-6 bg-muted rounded-2xl p-1">
+    <View className="flex-row mb-6 bg-background-subtle rounded-2xl p-1">
       <TouchableOpacity
         onPress={() => onChangeTab("expense")}
         className="flex-1 py-3 rounded-xl"
