@@ -1,3 +1,4 @@
+import { View } from "react-native";
 import { Category, CategoryReservation } from "@/types/category";
 import { Account } from "@/types/account";
 import { CategoryCard } from "./CategoryCard/CategoryCard";
