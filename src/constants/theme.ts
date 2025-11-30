@@ -85,6 +85,21 @@ const darkColors = {
     to: "#171717", // neutral-900, matches background.DEFAULT
   },
   overlay: "rgba(15, 23, 42, 0.7)",
+  
+  // Card / surface overlays
+  cardOverlay: "rgba(18, 18, 20, 0.92)", // semi-transparent card background
+  shadow: "#000000", // shadow color
+  white: "#ffffff", // white for icons/text
+  
+  // Tab / category backgrounds with opacity
+  tabActive: {
+    expense: "rgba(239, 68, 68, 0.1)", // destructive with 10% opacity
+    income: "rgba(34, 197, 94, 0.1)", // primary with 10% opacity
+  },
+  categoryCardBg: {
+    expense: "rgba(239, 68, 68, 0.03)", // destructive with 3% opacity
+    income: "rgba(34, 197, 94, 0.03)", // primary with 3% opacity
+  },
 } as const;
 
 const lightColors = {
@@ -172,6 +187,21 @@ const lightColors = {
     to: "#e5e7eb",
   },
   overlay: "rgba(15, 23, 42, 0.35)",
+  
+  // Card / surface overlays
+  cardOverlay: "rgba(255, 255, 255, 0.95)", // semi-transparent card background for light mode
+  shadow: "#000000", // shadow color
+  white: "#ffffff", // white for icons/text
+  
+  // Tab / category backgrounds with opacity
+  tabActive: {
+    expense: "rgba(239, 68, 68, 0.1)", // destructive with 10% opacity
+    income: "rgba(34, 197, 94, 0.1)", // primary with 10% opacity
+  },
+  categoryCardBg: {
+    expense: "rgba(239, 68, 68, 0.03)", // destructive with 3% opacity
+    income: "rgba(34, 197, 94, 0.03)", // primary with 3% opacity
+  },
 } as const;
 
 export const darkTheme = { colors: darkColors };

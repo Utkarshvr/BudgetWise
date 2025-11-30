@@ -1,138 +1,43 @@
-import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useState } from "react";
+import { Alert, RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { MaterialIcons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useSupabaseSession } from "@/hooks/useSupabaseSession";
-import {
-  Category,
-  CategoryFormData,
-  CategoryReservation,
-} from "@/types/category";
-import { Account } from "@/types/account";
+import { Category, CategoryFormData } from "@/types/category";
+import { theme } from "@/constants/theme";
+import { useCategoriesData } from "./hooks/useCategoriesData";
 import { CategoryFormSheet } from "./components/CategoryFormSheet";
-import { PrimaryButton } from "@/screens/auth/components/PrimaryButton";
 import { CategoryReservationSheet } from "./components/CategoryReservationSheet";
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffHours < 1) {
-    return "Just now";
-  } else if (diffHours < 24) {
-    return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-  } else if (diffDays < 7) {
-    return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
-  }
-  return date.toLocaleDateString();
-}
-
-const formatBalance = (amount: number, currency: string) => {
-  const mainUnit = amount / 100;
-  return `${currency} ${mainUnit.toLocaleString("en-IN", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })}`;
-};
+import { CategoriesHeader } from "./components/CategoriesHeader";
+import { CategoriesTabs } from "./components/CategoriesTabs";
+import { CategoriesEmptyState } from "./components/CategoriesEmptyState";
+import { CategoryList } from "./components/CategoryList";
+import { FullScreenLoader } from "./components/FullScreenLoader";
 
 export default function CategoriesScreen() {
   const { session } = useSupabaseSession();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [reservations, setReservations] = useState<CategoryReservation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const {
+    accounts,
+    reservations,
+    loading,
+    refreshing,
+    activeTab,
+    filteredCategories,
+    setActiveTab,
+    handleRefresh,
+    getReservationsForCategory,
+    getTotalReserved,
+  } = useCategoriesData(session);
+
   const [formSheetVisible, setFormSheetVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<"income" | "expense">("expense");
   const [reservationSheetVisible, setReservationSheetVisible] = useState(false);
   const [selectedCategoryForReservation, setSelectedCategoryForReservation] =
     useState<Category | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
   >({});
-
-  useEffect(() => {
-    if (session?.user) {
-      fetchData();
-    }
-  }, [session]);
-
-  const fetchData = async () => {
-    await Promise.all([
-      fetchCategories(),
-      fetchAccounts(),
-      fetchReservations(),
-    ]);
-  };
-
-  const fetchCategories = async () => {
-    if (!session?.user) return;
-    try {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setCategories(data || []);
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to fetch categories");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const fetchAccounts = async () => {
-    if (!session?.user) return;
-    try {
-      const { data, error } = await supabase
-        .from("accounts")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .order("name", { ascending: true });
-
-      if (error) throw error;
-      setAccounts(data || []);
-    } catch (error: any) {
-      console.error("Error fetching accounts:", error);
-    }
-  };
-
-  const fetchReservations = async () => {
-    if (!session?.user) return;
-    try {
-      const { data, error } = await supabase
-        .from("category_reservations")
-        .select("*")
-        .eq("user_id", session.user.id);
-
-      if (error) throw error;
-      setReservations(data || []);
-    } catch (error: any) {
-      console.error("Error fetching reservations:", error);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchData();
-  };
 
   const handleAddCategory = () => {
     setEditingCategory(null);
@@ -161,7 +66,7 @@ export default function CategoriesScreen() {
                 .eq("id", category.id);
 
               if (error) throw error;
-              fetchData();
+              handleRefresh();
             } catch (error: any) {
               Alert.alert(
                 "Error",
@@ -205,7 +110,7 @@ export default function CategoriesScreen() {
 
       setFormSheetVisible(false);
       setEditingCategory(null);
-      fetchData();
+      handleRefresh();
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to save category");
     } finally {
@@ -219,25 +124,8 @@ export default function CategoriesScreen() {
   };
 
   const handleReservationUpdated = () => {
-    fetchData();
+    handleRefresh();
   };
-
-  const getReservationsForCategory = (
-    categoryId: string
-  ): CategoryReservation[] => {
-    return reservations.filter((r) => r.category_id === categoryId);
-  };
-
-  const getTotalReserved = (categoryId: string): number => {
-    return getReservationsForCategory(categoryId).reduce(
-      (sum, r) => sum + r.reserved_amount,
-      0
-    );
-  };
-
-  const filteredCategories = categories.filter(
-    (cat) => cat.category_type === activeTab
-  );
 
   const toggleCategory = (category: Category) => {
     setExpandedCategories((prev) => ({
@@ -258,348 +146,44 @@ export default function CategoriesScreen() {
     ]);
   };
 
-  const renderCategoryDetails = (
-    category: Category,
-    categoryReservations: CategoryReservation[],
-    totalReserved: number
-  ) => {
-    const isReserved = categoryReservations.length > 0;
-
-    if (category.category_type === "income") {
-      return (
-        <View className="mt-3">
-          <Text className="text-neutral-400 text-xs">
-            Income categories don't hold funds. Use them to classify incoming
-            money.
-          </Text>
-          <View className="flex-row mt-3">
-            <TouchableOpacity
-              className="flex-1 flex-row items-center justify-center bg-neutral-800 rounded-xl py-2"
-              onPress={() => handleEditCategory(category)}
-            >
-              <MaterialIcons name="edit" size={16} color="#e5e7eb" />
-              <Text className="text-white text-sm font-semibold ml-2">
-                Edit Category
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      );
-    }
-
-    if (!isReserved) {
-      return (
-        <View className="mt-3">
-          <Text className="text-neutral-500 text-sm">
-            No funds reserved yet.
-          </Text>
-          <TouchableOpacity
-            className="mt-3 flex-row items-center justify-center rounded-xl bg-green-500/15 border border-green-500/30 py-2"
-            onPress={() => handleManageReservations(category)}
-          >
-            <MaterialIcons name="add" size={16} color="#22c55e" />
-            <Text className="text-green-400 text-sm font-semibold ml-2">
-              Create Fund
-            </Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
-    const currency = categoryReservations[0]?.currency || "INR";
-    const multiAccount = categoryReservations.length > 1;
-
-    return (
-      <View className="mt-3">
-        <Text className="text-neutral-400 text-xs mb-2">
-          Reserved from {categoryReservations.length} account
-          {categoryReservations.length > 1 ? "s" : ""}
-        </Text>
-
-        <View className="rounded-2xl border border-neutral-800/70">
-          {categoryReservations.map((reservation, index) => {
-            const account = accounts.find(
-              (a) => a.id === reservation.account_id
-            );
-            return (
-              <View key={reservation.id}>
-                <View className="flex-row items-center justify-between px-3 py-2">
-                  <View className="flex-row items-center">
-                    <View className="size-1.5 rounded-full bg-green-400 mr-2" />
-                    <Text className="text-white text-sm">
-                      {account?.name || "Unknown account"}
-                    </Text>
-                  </View>
-                  <Text className="text-green-400 text-sm font-semibold">
-                    {formatBalance(
-                      reservation.reserved_amount,
-                      reservation.currency
-                    )}
-                  </Text>
-                </View>
-                {index < categoryReservations.length - 1 && (
-                  <View className="h-px bg-neutral-800" />
-                )}
-              </View>
-            );
-          })}
-
-          <View className="h-px bg-neutral-800" />
-          <View className="flex-row items-center justify-between px-3 py-2">
-            <Text className="text-neutral-400 text-xs uppercase tracking-wide">
-              Total Reserved
-            </Text>
-            <Text className="text-green-400 text-base font-semibold">
-              {formatBalance(totalReserved, currency)}
-            </Text>
-          </View>
-        </View>
-
-        <View className="flex-row flex-wrap mt-3">
-          {multiAccount ? (
-            <TouchableOpacity
-              className="flex-1 flex-row items-center justify-center rounded-xl bg-green-500/15 border border-green-500/30 py-2"
-              onPress={() => handleManageReservations(category)}
-            >
-              <MaterialIcons name="savings" size={16} color="#22c55e" />
-              <Text className="text-green-400 text-sm font-semibold ml-2">
-                Manage Funds
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <>
-              <TouchableOpacity
-                className="flex-1 flex-row items-center justify-center rounded-xl bg-neutral-800 py-2 mr-2"
-                onPress={() => handleManageReservations(category)}
-              >
-                <MaterialIcons name="north-east" size={16} color="#e5e7eb" />
-                <Text className="text-white text-sm font-semibold ml-2">
-                  Add Money
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="flex-1 flex-row items-center justify-center rounded-xl bg-neutral-800 py-2"
-                onPress={() => handleManageReservations(category)}
-              >
-                <MaterialIcons name="south-west" size={16} color="#e5e7eb" />
-                <Text className="text-white text-sm font-semibold ml-2">
-                  Withdraw
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="w-full flex-row items-center justify-center rounded-xl border border-neutral-700 py-2 mt-2"
-                onPress={() => handleManageReservations(category)}
-              >
-                <MaterialIcons name="edit" size={16} color="#e5e7eb" />
-                <Text className="text-white text-sm font-semibold ml-2">
-                  Manage Fund
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      </View>
-    );
-  };
-
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-neutral-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#22c55e" />
-      </SafeAreaView>
-    );
+    return <FullScreenLoader />;
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-900">
+    <SafeAreaView className="flex-1 bg-background">
       <ScrollView
         className="flex-1 px-4 pt-4"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#22c55e"
+            tintColor={theme.colors.primary.DEFAULT}
           />
         }
       >
-        <View className="flex-row items-center justify-between mb-6">
-          <View>
-            <Text className="text-3xl font-bold text-white">Categories</Text>
-            <Text className="text-neutral-500 text-sm mt-1">
-              Organize your income and expenses
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={handleAddCategory}
-            className="w-12 h-12 rounded-2xl bg-green-600 items-center justify-center"
-          >
-            <MaterialIcons name="add" size={24} color="#ffffff" />
-          </TouchableOpacity>
-        </View>
+        <CategoriesHeader onAddCategory={handleAddCategory} />
 
-        {/* Tabs */}
-        <View className="flex-row mb-6 bg-neutral-800 rounded-2xl p-1">
-          <TouchableOpacity
-            onPress={() => setActiveTab("expense")}
-            className="flex-1 py-3 rounded-xl"
-            style={{
-              backgroundColor:
-                activeTab === "expense"
-                  ? "rgba(239, 68, 68, 0.1)"
-                  : "transparent",
-            }}
-          >
-            <Text
-              className={`text-center font-semibold ${
-                activeTab === "expense" ? "text-white" : "text-neutral-400"
-              }`}
-            >
-              Expense
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setActiveTab("income")}
-            className="flex-1 py-3 rounded-xl"
-            style={{
-              backgroundColor:
-                activeTab === "income"
-                  ? "rgba(34, 197, 94, 0.1)"
-                  : "transparent",
-            }}
-          >
-            <Text
-              className={`text-center font-semibold ${
-                activeTab === "income" ? "text-white" : "text-neutral-400"
-              }`}
-            >
-              Income
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <CategoriesTabs activeTab={activeTab} onChangeTab={setActiveTab} />
 
         {filteredCategories.length === 0 ? (
-          <View className="bg-neutral-800 rounded-2xl p-6 items-center">
-            <MaterialIcons name="category" size={48} color="#6b7280" />
-            <Text className="text-white text-lg font-semibold mt-4">
-              No {activeTab} categories yet
-            </Text>
-            <Text className="text-neutral-400 text-sm text-center mt-2">
-              Create your first {activeTab} category to start organizing
-              transactions.
-            </Text>
-            <View className="w-full mt-4">
-              <PrimaryButton
-                label="Create Category"
-                onPress={handleAddCategory}
-              />
-            </View>
-          </View>
+          <CategoriesEmptyState
+            activeTab={activeTab}
+            onCreateCategory={handleAddCategory}
+          />
         ) : (
-          <View>
-            {filteredCategories.map((category) => {
-              const categoryReservations = getReservationsForCategory(
-                category.id
-              );
-              const totalReserved = getTotalReserved(category.id);
-              const isReserved = categoryReservations.length > 0;
-              const fundCurrency = categoryReservations[0]?.currency || "INR";
-              const fundLabel = isReserved
-                ? `Funded: ${formatBalance(totalReserved, fundCurrency)}`
-                : "No fund";
-              const isExpanded = !!expandedCategories[category.id];
-
-              return (
-                <View
-                  key={category.id}
-                  className="border border-neutral-800/60 rounded-2xl mb-3 overflow-hidden"
-                  style={{
-                    backgroundColor:
-                      category.category_type === "expense"
-                        ? "rgba(239, 68, 68, 0.03)"
-                        : "rgba(34, 197, 94, 0.03)",
-                  }}
-                >
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() => toggleCategory(category)}
-                    className="flex-row items-center px-4 py-2"
-                  >
-                    <View
-                      className="w-14 h-14 rounded-2xl items-center justify-center mr-3"
-                      style={{ backgroundColor: category.background_color }}
-                    >
-                      <Text style={{ fontSize: 28 }}>{category.emoji}</Text>
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-white text-base font-semibold mb-1">
-                        {category.name}
-                      </Text>
-                      <View className="flex-row items-center">
-                        {isReserved ? (
-                          <View className="flex-row items-center">
-                            <View className="w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5" />
-                            <Text className="text-green-400 text-xs font-medium">
-                              {formatBalance(totalReserved, fundCurrency)}
-                            </Text>
-                          </View>
-                        ) : (
-                          <View className="flex-row items-center">
-                            <View className="w-1.5 h-1.5 rounded-full bg-neutral-600 mr-1.5" />
-                            <Text className="text-neutral-600 text-xs font-medium">
-                              No fund
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                    <View className="flex-row items-center ml-2">
-                      {category.category_type === "expense" && (
-                        <View className="w-9 h-9 rounded-full items-center justify-center mr-1.5">
-                          <MaterialIcons
-                            name={
-                              isExpanded ? "expand-less" : "keyboard-arrow-down"
-                            }
-                            size={24}
-                            color="#9ca3af"
-                          />
-                        </View>
-                      )}
-                      <TouchableOpacity
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          handleCategoryActions(category);
-                        }}
-                        className="w-9 h-9 rounded-full items-center justify-center"
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <MaterialIcons
-                          name="more-vert"
-                          size={20}
-                          color="#9ca3af"
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  </TouchableOpacity>
-
-                  {isExpanded && (
-                    <>
-                      <View className="h-px bg-neutral-700/50 mx-4" />
-                      <View className="px-4 pt-3 pb-4">
-                        <Text className="text-neutral-500 text-xs mb-3">
-                          Updated {formatDate(category.updated_at)}
-                        </Text>
-                        {renderCategoryDetails(
-                          category,
-                          categoryReservations,
-                          totalReserved
-                        )}
-                      </View>
-                    </>
-                  )}
-                </View>
-              );
-            })}
-          </View>
+          <CategoryList
+            categories={filteredCategories}
+            accounts={accounts}
+            reservations={reservations}
+            expandedCategories={expandedCategories}
+            onToggleCategory={toggleCategory}
+            onCategoryActions={handleCategoryActions}
+            onEditCategory={handleEditCategory}
+            onManageReservations={handleManageReservations}
+            getReservationsForCategory={getReservationsForCategory}
+            getTotalReserved={getTotalReserved}
+          />
         )}
       </ScrollView>
 

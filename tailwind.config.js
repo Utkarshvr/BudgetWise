@@ -56,6 +56,11 @@ module.exports = {
           DEFAULT: "#f59e0b", // amber-500
           foreground: "#fffbeb", // amber-50
         },
+
+        // Card / surface overlays
+        cardOverlay: "rgba(18, 18, 20, 0.92)", // semi-transparent card background
+        shadow: "#000000", // shadow color
+        white: "#ffffff", // white for icons/text
       },
     },
   },

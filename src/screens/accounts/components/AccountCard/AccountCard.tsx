@@ -54,7 +54,7 @@ export function AccountCard({
               <MaterialIcons
                 name={ACCOUNT_TYPE_ICONS[account.type] as any}
                 size={22}
-                color="white"
+                color={theme.colors.white}
               />
             </View>
             <View className="flex-1">
@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
   cardInner: {
     borderRadius: 28,
     padding: 16,
-    backgroundColor: "rgba(18, 18, 20, 0.92)",
-    shadowColor: "#000",
+    backgroundColor: theme.colors.cardOverlay,
+    shadowColor: theme.colors.shadow,
     shadowOpacity: 0.25,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 16,
