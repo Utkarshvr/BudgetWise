@@ -16,6 +16,7 @@ type TransactionGroupProps = {
     TRANSACTION_TYPE_META: Record<string, TransactionTypeMeta>;
   };
   isLastGroup: boolean;
+  onTransactionPress?: (transaction: Transaction) => void;
 };
 
 export function TransactionGroup({
@@ -23,6 +24,7 @@ export function TransactionGroup({
   colors,
   typeMeta,
   isLastGroup,
+  onTransactionPress,
 }: TransactionGroupProps) {
   return (
     <View>
@@ -44,6 +46,7 @@ export function TransactionGroup({
           colors={colors}
           DEFAULT_TYPE_META={typeMeta.DEFAULT_TYPE_META}
           TRANSACTION_TYPE_META={typeMeta.TRANSACTION_TYPE_META}
+          onPress={onTransactionPress}
         />
       ))}
       {/* Separator between date groups */}

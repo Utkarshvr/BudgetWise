@@ -12,6 +12,7 @@ type TransactionItemProps = {
   colors: ThemeColors;
   DEFAULT_TYPE_META: TransactionTypeMeta;
   TRANSACTION_TYPE_META: Record<string, TransactionTypeMeta>;
+  onPress?: (transaction: Transaction) => void;
 };
 
 export function TransactionItem({
@@ -20,6 +21,7 @@ export function TransactionItem({
   colors,
   DEFAULT_TYPE_META,
   TRANSACTION_TYPE_META,
+  onPress,
 }: TransactionItemProps) {
   const typeMeta =
     TRANSACTION_TYPE_META[transaction.type] || DEFAULT_TYPE_META;
@@ -37,7 +39,7 @@ export function TransactionItem({
   return (
     <View>
       <TouchableHighlight
-        onPress={() => {}}
+        onPress={() => onPress?.(transaction)}
         underlayColor={colors.background.subtle}
         {...rippleProps}
         className="px-4"

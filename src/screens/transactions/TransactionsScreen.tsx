@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { ScrollView, RefreshControl, View } from "react-native";
+import { ScrollView, RefreshControl, View, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSupabaseSession } from "@/hooks/useSupabaseSession";
 import { useThemeColors } from "@/constants/theme";
@@ -12,10 +12,15 @@ import { DateRangeFilterBar } from "./components/DateRangeFilterBar";
 import { TransactionsList } from "./components/TransactionsList";
 import { EmptyState } from "./components/EmptyState";
 import { FullScreenLoader } from "./components/FullScreenLoader";
+import { TransactionActionSheet } from "./components/TransactionActionSheet";
+import { Transaction } from "@/types/transaction";
+import { useRouter } from "expo-router";
+import { supabase } from "@/lib/supabase";
 
 export default function TransactionsScreen() {
   const colors = useThemeColors();
   const typeMeta = buildTypeMeta(colors);
+  const router = useRouter();
 
   const { session } = useSupabaseSession();
   const {
@@ -38,6 +43,8 @@ export default function TransactionsScreen() {
     width: number;
     height: number;
   } | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [showActionSheet, setShowActionSheet] = useState(false);
 
   const handleFilterTypeChange = useCallback((type: DateRangeFilter) => {
     setFilterType(type);
@@ -59,6 +66,57 @@ export default function TransactionsScreen() {
       setShowFilterDropdown(false);
     }
   }, [showFilterDropdown]);
+
+  const handleTransactionPress = useCallback((transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setShowActionSheet(true);
+  }, []);
+
+  const handleCloseActionSheet = useCallback(() => {
+    setShowActionSheet(false);
+    setSelectedTransaction(null);
+  }, []);
+
+  const handleEditTransaction = useCallback((transaction: Transaction) => {
+    // Navigate to edit screen - you may need to adjust this based on your routing
+    router.push({
+      pathname: "/transactions/add",
+      params: { transactionId: transaction.id },
+    });
+  }, [router]);
+
+  const handleDeleteTransaction = useCallback((transaction: Transaction) => {
+    Alert.alert(
+      "Delete Transaction",
+      `Are you sure you want to delete "${transaction.note}"?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from("transactions")
+                .delete()
+                .eq("id", transaction.id)
+                .eq("user_id", session?.user.id);
+
+              if (error) throw error;
+
+              Alert.alert("Success", "Transaction deleted successfully");
+              handleRefresh();
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to delete transaction");
+            }
+          },
+        },
+      ]
+    );
+  }, [handleRefresh, session?.user.id]);
 
   const totalCount = filteredAndGroupedTransactions.reduce(
     (sum, group) => sum + group.transactions.length,
@@ -102,6 +160,7 @@ export default function TransactionsScreen() {
             grouped={filteredAndGroupedTransactions}
             colors={colors}
             typeMeta={typeMeta}
+            onTransactionPress={handleTransactionPress}
           />
         ) : (
           <EmptyState colors={colors} />
@@ -117,6 +176,16 @@ export default function TransactionsScreen() {
           buttonLayout={filterButtonLayout}
         />
       )}
+
+      <TransactionActionSheet
+        visible={showActionSheet}
+        transaction={selectedTransaction}
+        colors={colors}
+        typeMeta={typeMeta}
+        onClose={handleCloseActionSheet}
+        onEdit={handleEditTransaction}
+        onDelete={handleDeleteTransaction}
+      />
     </SafeAreaView>
   );
 }

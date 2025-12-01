@@ -14,12 +14,14 @@ type TransactionsListProps = {
     DEFAULT_TYPE_META: TransactionTypeMeta;
     TRANSACTION_TYPE_META: Record<string, TransactionTypeMeta>;
   };
+  onTransactionPress?: (transaction: Transaction) => void;
 };
 
 export function TransactionsList({
   grouped,
   colors,
   typeMeta,
+  onTransactionPress,
 }: TransactionsListProps) {
   return (
     <View className="mb-6 -mx-4">
@@ -30,6 +32,7 @@ export function TransactionsList({
           colors={colors}
           typeMeta={typeMeta}
           isLastGroup={groupIndex === grouped.length - 1}
+          onTransactionPress={onTransactionPress}
         />
       ))}
     </View>
