@@ -1,5 +1,11 @@
 import { Tabs } from "expo-router";
-import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  Text,
+} from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -68,6 +74,7 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
+
       <TouchableOpacity
         style={[
           styles.fab,
@@ -75,10 +82,12 @@ export default function TabLayout() {
             bottom: 60 + insets.bottom + 20, // Above the tab bar with safe area
           },
         ]}
+        className="flex-row items-center justify-center gap-2 px-4 py-2 rounded-md bg-primary-strong"
         onPress={() => setShowAmountInput(true)}
         activeOpacity={0.8}
       >
-        <MaterialIcons name="add" size={28} color="white" />
+        <MaterialIcons name="add" size={28} color="white" />{" "}
+        <Text className="text-white text-base font-semibold">Transaction</Text>
       </TouchableOpacity>
 
       {/* Amount Input Screen */}
@@ -94,7 +103,9 @@ export default function TabLayout() {
 
       {/* Add Transaction Screen */}
       {showAddTransaction && (
-        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+        <View
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+        >
           <TransactionFormScreen
             initialAmount={transactionAmount}
             onClose={() => setShowAddTransaction(false)}
@@ -113,10 +124,6 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#22c55e",
     justifyContent: "center",
     alignItems: "center",
     ...Platform.select({
