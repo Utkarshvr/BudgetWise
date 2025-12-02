@@ -73,6 +73,15 @@ export default function TabLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: "Settings",
+            tabBarIcon: ({ color, size }) => (
+              <MaterialIcons name="settings" size={size} color={color} />
+            ),
+          }}
+        />
       </Tabs>
 
       <TouchableOpacity
@@ -86,7 +95,7 @@ export default function TabLayout() {
         onPress={() => setShowAmountInput(true)}
         activeOpacity={0.8}
       >
-        <MaterialIcons name="add" size={28} color="white" />{" "}
+        <MaterialIcons name="add" size={28} color="white" />
         <Text className="text-white text-base font-semibold">Transaction</Text>
       </TouchableOpacity>
 

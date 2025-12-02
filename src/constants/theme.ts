@@ -84,7 +84,7 @@ const darkColors = {
     from: "#262626", // neutral-800, matches background.subtle
     to: "#171717", // neutral-900, matches background.DEFAULT
   },
-  overlay: "rgba(15, 23, 42, 0.7)",
+  overlay: "rgba(0, 0, 0, 0.7)",
 
   // Card / surface overlays
   cardOverlay: "rgba(18, 18, 20, 0.92)", // semi-transparent card background
