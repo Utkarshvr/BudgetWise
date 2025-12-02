@@ -5,6 +5,7 @@ export default ({ config }: { config: ExpoConfig }) => ({
   extra: {
     ...config.extra,
     SUPABASE_URL: process.env.SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY,
+    // Use the anon key from EAS env vars
+    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
   },
 });
