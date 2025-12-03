@@ -5,6 +5,9 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from "react-native";
 import {
   BottomSheetModal,
@@ -14,8 +17,12 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { Category, CategoryReservation } from "@/types/category";
 import { Account } from "@/types/account";
-import { PrimaryButton } from "@/screens/auth/components/PrimaryButton";
 import { supabase } from "@/lib/supabase";
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 type CategoryReservationSheetProps = {
   visible: boolean;
@@ -45,11 +52,11 @@ export function CategoryReservationSheet({
   onUpdated,
 }: CategoryReservationSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
-  const snapPoints = useMemo(() => ["75%", "90%"], []);
+  const snapPoints = useMemo(() => ["90%"], []);
 
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [activeAction, setActiveAction] = useState<"add" | "withdraw" | null>(null);
   const [amount, setAmount] = useState("");
-  const [action, setAction] = useState<"add" | "withdraw">("add");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -62,9 +69,9 @@ export function CategoryReservationSheet({
 
   useEffect(() => {
     if (!visible) {
-      setSelectedAccountId(null);
+      setExpandedCard(null);
+      setActiveAction(null);
       setAmount("");
-      setAction("add");
     }
   }, [visible]);
 
@@ -93,9 +100,9 @@ export function CategoryReservationSheet({
     onClose();
   }, [onClose]);
 
-  const handleSubmit = async () => {
-    if (!category || !selectedAccountId || !amount) {
-      Alert.alert("Error", "Please select an account and enter an amount");
+  const handleSubmit = async (accountId: string, action: "add" | "withdraw") => {
+    if (!category || !amount) {
+      Alert.alert("Error", "Please enter an amount");
       return;
     }
 
@@ -108,7 +115,7 @@ export function CategoryReservationSheet({
     const amountSmallest = Math.round(amountNum * 100);
 
     // Prevent allocating more than the account's unreserved balance
-    const unreservedForAccount = accountUnreserved[selectedAccountId] || 0;
+    const unreservedForAccount = accountUnreserved[accountId] || 0;
     if (action === "add" && amountSmallest > unreservedForAccount) {
       Alert.alert(
         "Insufficient unreserved funds",
@@ -123,14 +130,15 @@ export function CategoryReservationSheet({
     try {
       const { data, error } = await supabase.rpc("adjust_category_reservation", {
         p_category_id: category.id,
-        p_account_id: selectedAccountId,
+        p_account_id: accountId,
         p_amount_delta: amountDelta,
       });
 
       if (error) throw error;
 
       setAmount("");
-      setSelectedAccountId(null);
+      setExpandedCard(null);
+      setActiveAction(null);
       onUpdated();
       Alert.alert(
         "Success",
@@ -170,13 +178,20 @@ export function CategoryReservationSheet({
     );
   };
 
-  const getAccountReservation = (accountId: string): CategoryReservation | null => {
-    return reservations.find((r) => r.account_id === accountId) || null;
-  };
-
-  const getAccountBalance = (accountId: string): number => {
-    const account = accounts.find((a) => a.id === accountId);
-    return account?.balance || 0;
+  const handleActionClick = (reservationId: string, action: "add" | "withdraw") => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    
+    if (expandedCard === reservationId && activeAction === action) {
+      // Collapse if clicking the same button
+      setExpandedCard(null);
+      setActiveAction(null);
+      setAmount("");
+    } else {
+      // Expand with new action
+      setExpandedCard(reservationId);
+      setActiveAction(action);
+      setAmount("");
+    }
   };
 
   if (!category) return null;
@@ -220,155 +235,164 @@ export function CategoryReservationSheet({
           </TouchableOpacity>
         </View>
 
-        {/* Existing Reservations */}
-        {reservations.length > 0 && (
+        {/* Current Reservations */}
+        {reservations.length > 0 ? (
           <View className="mb-6">
             <Text className="text-neutral-300 text-sm mb-3 font-semibold">
               Current Reservations
             </Text>
             {reservations.map((reservation) => {
               const account = accounts.find((a) => a.id === reservation.account_id);
+              const isExpanded = expandedCard === reservation.id;
+              const unreservedAmount = accountUnreserved[reservation.account_id] || 0;
+              const freeToSpend = account ? account.balance - reservation.reserved_amount : 0;
+
               return (
                 <View
                   key={reservation.id}
-                  className="bg-neutral-800 rounded-2xl p-4 mb-3"
+                  className="bg-neutral-800 rounded-2xl p-4 mb-3 border-2"
+                  style={{ 
+                    borderColor: isExpanded ? "#3b82f6" : "transparent"
+                  }}
                 >
-                  <View className="flex-row items-center justify-between mb-2">
+                  {/* Header with Account Name and Reserved Amount */}
+                  <View className="flex-row items-center justify-between mb-3">
                     <View className="flex-1">
-                      <Text className="text-white text-base font-semibold">
+                      <Text className="text-white text-lg font-semibold">
                         {account?.name || "Unknown Account"}
                       </Text>
-                      <Text className="text-neutral-400 text-xs mt-1">
-                        Account Balance:{" "}
+                    </View>
+                    <View className="flex-row items-center">
+                      <Text className="text-green-400 text-xl font-bold">
+                        {formatBalance(reservation.reserved_amount, reservation.currency)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Balance Details */}
+                  <View className="flex-row justify-between mb-3 pb-3 border-b border-neutral-700">
+                    <View>
+                      <Text className="text-neutral-400 text-xs mb-1">FULL BALANCE</Text>
+                      <Text className="text-white text-sm font-medium">
                         {formatBalance(account?.balance || 0, account?.currency || "INR")}
                       </Text>
                     </View>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteReservation(reservation)}
-                      className="ml-2"
-                    >
-                      <MaterialIcons name="delete-outline" size={20} color="#ef4444" />
-                    </TouchableOpacity>
+                    <View className="items-end">
+                      <Text className="text-neutral-400 text-xs mb-1">FREE TO SPEND</Text>
+                      <Text className="text-white text-sm font-medium">
+                        {formatBalance(freeToSpend, account?.currency || "INR")}
+                      </Text>
+                    </View>
                   </View>
-                  <View className="flex-row items-center justify-between mt-2 pt-2 border-t border-neutral-700">
-                    <Text className="text-neutral-400 text-xs">Reserved</Text>
-                    <Text className="text-green-400 text-lg font-bold">
-                      {formatBalance(reservation.reserved_amount, reservation.currency)}
-                    </Text>
-                  </View>
+
+                  {/* Action Buttons */}
+                  {!isExpanded && (
+                    <View className="flex-row gap-2">
+                      <View className="flex-[0.9] flex-row gap-2">
+                        <TouchableOpacity
+                          onPress={() => handleActionClick(reservation.id, "add")}
+                          className="flex-1 bg-green-600 rounded-xl py-3 items-center"
+                        >
+                          <Text className="text-white text-sm font-semibold">Add Funds</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => handleActionClick(reservation.id, "withdraw")}
+                          className="flex-1 bg-neutral-700 rounded-xl py-3 items-center"
+                        >
+                          <Text className="text-white text-sm font-semibold">Withdraw</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteReservation(reservation)}
+                        className="flex-[0.1] bg-neutral-700 rounded-xl py-3 items-center justify-center"
+                      >
+                        <MaterialIcons name="delete-outline" size={20} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {/* Expanded Input Section */}
+                  {isExpanded && (
+                    <View>
+                      {/* Selected Action Buttons */}
+                      <View className="flex-row gap-2 mb-3">
+                        <View className="flex-[0.8] flex-row gap-2">
+                          <TouchableOpacity
+                            onPress={() => handleActionClick(reservation.id, "add")}
+                            className={`flex-1 rounded-xl justify-center items-center ${
+                              activeAction === "add" ? "bg-green-600" : "bg-neutral-700"
+                            }`}
+                          >
+                            <Text className="text-white text-sm font-semibold">Add Funds</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => handleActionClick(reservation.id, "withdraw")}
+                            className={`flex-1 rounded-xl justify-center items-center ${
+                              activeAction === "withdraw" ? "bg-neutral-600" : "bg-neutral-700"
+                            }`}
+                          >
+                            <Text className="text-white text-sm font-semibold">Withdraw</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => handleDeleteReservation(reservation)}
+                          className="flex-[0.2] bg-neutral-700 rounded-xl py-2 items-center justify-center"
+                        >
+                          <MaterialIcons name="delete-outline" size={20} color="#ef4444" />
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Amount Input and Submit */}
+                      <Text className="text-neutral-300 text-xs mb-2">Enter Amount</Text>
+                      <View className="flex-row gap-2">
+                        <TextInput
+                          value={amount}
+                          onChangeText={(text) => {
+                            const cleaned = text.replace(/[^\d.]/g, "");
+                            const parts = cleaned.split(".");
+                            if (parts.length > 2) {
+                              setAmount(parts[0] + "." + parts.slice(1).join(""));
+                            } else {
+                              setAmount(cleaned);
+                            }
+                          }}
+                          placeholder="3000"
+                          placeholderTextColor="#6b7280"
+                          keyboardType="decimal-pad"
+                          className="flex-1 bg-neutral-700 rounded-xl px-4 py-3 text-white text-base"
+                          autoFocus
+                        />
+                        <TouchableOpacity
+                          onPress={() => handleSubmit(reservation.account_id, activeAction!)}
+                          disabled={submitting || !amount}
+                          className={`rounded-xl px-6 items-center justify-center ${
+                            activeAction === "add" ? "bg-green-600" : "bg-neutral-600"
+                          }`}
+                          style={{ opacity: submitting || !amount ? 0.5 : 1 }}
+                        >
+                          <Text className="text-white text-sm font-semibold">
+                            {activeAction === "add" ? "Add" : "Withdraw"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
                 </View>
               );
             })}
           </View>
-        )}
-
-        {/* Add/Withdraw Section */}
-        <View className="bg-neutral-800 rounded-2xl p-4 mb-6">
-          <Text className="text-white text-base font-semibold mb-4">
-            Add or Withdraw Funds
-          </Text>
-
-          {/* Action Selector */}
-          <Text className="text-neutral-300 text-sm mb-2">Action</Text>
-          <View className="flex-row mb-4">
-            <TouchableOpacity
-              onPress={() => setAction("add")}
-              className={`flex-1 px-4 py-3 rounded-xl mr-2 ${
-                action === "add" ? "bg-green-600" : "bg-neutral-700"
-              }`}
-            >
-              <Text className="text-white text-sm font-medium text-center">
-                Add Funds
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setAction("withdraw")}
-              className={`flex-1 px-4 py-3 rounded-xl ${
-                action === "withdraw" ? "bg-orange-600" : "bg-neutral-700"
-              }`}
-            >
-              <Text className="text-white text-sm font-medium text-center">
-                Withdraw
-              </Text>
-            </TouchableOpacity>
+        ) : (
+          <View className="bg-neutral-800/50 rounded-2xl p-6 mb-6 items-center">
+            <MaterialIcons name="account-balance-wallet" size={48} color="#525252" />
+            <Text className="text-neutral-400 text-sm text-center mt-3">
+              No reservations yet. Add funds from your accounts to start budgeting for this category.
+            </Text>
           </View>
-
-          {/* Account Selector */}
-          <Text className="text-neutral-300 text-sm mb-2">Account</Text>
-          {accounts.length === 0 ? (
-            <View className="bg-neutral-700 rounded-xl px-4 py-3 mb-4">
-              <Text className="text-neutral-400 text-sm">
-                No accounts available
-              </Text>
-            </View>
-          ) : (
-            <View className="mb-4">
-              {accounts.map((account) => {
-                const reservation = getAccountReservation(account.id);
-                const isSelected = selectedAccountId === account.id;
-
-                return (
-                  <TouchableOpacity
-                    key={account.id}
-                    onPress={() => setSelectedAccountId(account.id)}
-                    className={`bg-neutral-700 rounded-xl p-3 mb-2 ${
-                      isSelected ? "border-2 border-green-500" : ""
-                    }`}
-                  >
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-1">
-                        <Text className="text-white text-sm font-semibold">
-                          {account.name}
-                        </Text>
-                        <Text className="text-neutral-400 text-xs mt-1">
-                          Balance: {formatBalance(account.balance, account.currency)}
-                        </Text>
-                        {reservation && (
-                          <Text className="text-green-400 text-xs mt-1">
-                            Reserved: {formatBalance(reservation.reserved_amount, reservation.currency)}
-                          </Text>
-                        )}
-                      </View>
-                      {isSelected && (
-                        <MaterialIcons name="check-circle" size={20} color="#22c55e" />
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
-
-          {/* Amount Input */}
-          <Text className="text-neutral-300 text-sm mb-2">Amount</Text>
-          <TextInput
-            value={amount}
-            onChangeText={(text) => {
-              const cleaned = text.replace(/[^\d.]/g, "");
-              const parts = cleaned.split(".");
-              if (parts.length > 2) {
-                setAmount(parts[0] + "." + parts.slice(1).join(""));
-              } else {
-                setAmount(cleaned);
-              }
-            }}
-            placeholder="0.00"
-            placeholderTextColor="#6b7280"
-            keyboardType="decimal-pad"
-            className="bg-neutral-700 rounded-xl px-4 py-3 text-white text-base mb-4"
-          />
-
-          <PrimaryButton
-            label={`${action === "add" ? "Add" : "Withdraw"} Funds`}
-            onPress={handleSubmit}
-            loading={submitting}
-          />
-        </View>
+        )}
 
         <View className="bg-neutral-800/50 rounded-xl p-3">
           <Text className="text-neutral-400 text-xs text-center">
-            💡 Tip: Reserved funds help you plan spending for specific categories.
-            {action === "withdraw" && " Withdrawing makes funds available again."}
+            💡 Tip: Reserved funds help you plan spending for specific categories. Tap on any account to add or withdraw funds.
           </Text>
         </View>
       </BottomSheetScrollView>
