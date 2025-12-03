@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width: screenWidth } = Dimensions.get("window");
 const CONTAINER_PADDING = 24; // px-6 = 24px on each side
@@ -28,7 +29,7 @@ function PlaceholderIllustration({
   variant = "wallet",
 }: PlaceholderIllustrationProps) {
   const iconProps = {
-    size: 72,
+    size: 112,
     color: "#22c55e",
   };
 
@@ -90,7 +91,11 @@ export function OnboardingScreen() {
   const handleMomentumEnd = (event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const nextIndex = Math.round(offsetX / itemWidth);
-    if (nextIndex !== currentIndex && nextIndex >= 0 && nextIndex < SLIDES.length) {
+    if (
+      nextIndex !== currentIndex &&
+      nextIndex >= 0 &&
+      nextIndex < SLIDES.length
+    ) {
       setCurrentIndex(nextIndex);
       // Ensure proper alignment after manual scroll
       const targetOffset = nextIndex * itemWidth;
@@ -99,95 +104,88 @@ export function OnboardingScreen() {
   };
 
   return (
-    <View className="flex-1 bg-neutral-950">
-      <View className="flex-1 px-6 py-20">
-        <View className="flex-1 justify-between">
-          {/* Top: logo + skip */}
-          <View className="self-end">
-            <TouchableOpacity onPress={handleSkip} hitSlop={8}>
-              <Text className="text-sm font-medium text-neutral-400">Skip</Text>
-            </TouchableOpacity>
-          </View>
+    <SafeAreaView className="flex-1 bg-background px-4 pb-4 justify-between">
+      {/* Top: logo + skip */}
+      <View className="flex-row items-center justify-between">
+        {/* Logo */}
+        <View className="flex-row gap-2 items-center">
+          <Image
+            source={require("@/assets/brand/logo-notext.png")}
+            style={{ width: 24, height: 24, borderRadius: 999 }}
+            resizeMode="contain"
+            className="self-center"
+          />
+          <Text className="text-base font-bold text-neutral-100">
+            BudgetWise
+          </Text>
+        </View>
+        <TouchableOpacity onPress={handleSkip} hitSlop={8}>
+          <Text className="text-base font-bold text-neutral-300">Skip</Text>
+        </TouchableOpacity>
+      </View>
 
-          <View className="flex-1 justify-between">
-            {/* Logo */}
-            <Image
-              source={require("@/assets/brand/logo.png")}
-              style={{ width: 120, height: 120, borderRadius: 999 }}
-              resizeMode="contain"
-              className="self-center"
-            />
+      {/* Middle: illustration + text*/}
+      <View className="">
+        <FlatList
+          ref={listRef}
+          data={SLIDES}
+          keyExtractor={(item) => item.title}
+          horizontal
+          pagingEnabled={false}
+          snapToInterval={itemWidth}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={handleMomentumEnd}
+          contentContainerStyle={{ paddingHorizontal: 0 }}
+          getItemLayout={(_, index) => ({
+            length: itemWidth,
+            offset: itemWidth * index,
+            index,
+          })}
+          renderItem={({ item }) => (
+            <View style={{ width: itemWidth }} className="items-center">
+              <View className="items-center">{item.illustration}</View>
 
-            {/* Middle: illustration + text + dots */}
-            <View className="justify-center">
-              <FlatList
-                ref={listRef}
-                data={SLIDES}
-                keyExtractor={(item) => item.title}
-                horizontal
-                pagingEnabled={false}
-                snapToInterval={itemWidth}
-                snapToAlignment="start"
-                decelerationRate="fast"
-                showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={handleMomentumEnd}
-                contentContainerStyle={{ paddingHorizontal: 0 }}
-                getItemLayout={(_, index) => ({
-                  length: itemWidth,
-                  offset: itemWidth * index,
-                  index,
-                })}
-                renderItem={({ item }) => (
-                  <View style={{ width: itemWidth }} className="items-center">
-                    <View className="items-center">{item.illustration}</View>
-
-                    <View className="mt-8 items-center px-6">
-                      <Text className="text-center text-2xl font-semibold text-neutral-50">
-                        {item.title}
-                      </Text>
-                      <Text className="mt-3 text-center text-base font-normal text-neutral-400">
-                        {item.subtitle}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              />
-            </View>
-
-            {/* Bottom: primary button */}
-            <View>
-              <View className="mb-6 items-center">
-                <View className="flex-row items-center justify-center gap-2">
-                  {SLIDES.map((_, index) => {
-                    const isActive = index === currentIndex;
-                    return (
-                      // eslint-disable-next-line react/no-array-index-key
-                      <View
-                        key={index}
-                        className={`h-2 rounded-full ${
-                          isActive
-                            ? "w-5 bg-emerald-400"
-                            : "w-2.5 bg-neutral-700"
-                        }`}
-                      />
-                    );
-                  })}
-                </View>
-              </View>
-              <TouchableOpacity
-                onPress={handleContinue}
-                className="w-full items-center justify-center rounded-2xl bg-emerald-500 py-4"
-                activeOpacity={0.9}
-              >
-                <Text className="text-base font-semibold text-white">
-                  Continue
+              <View className="mt-8 items-center px-6">
+                <Text className="text-center text-4xl font-semibold text-neutral-50">
+                  {item.title}
                 </Text>
-              </TouchableOpacity>
+                <Text className="mt-3 text-center text-base font-normal text-neutral-400">
+                  {item.subtitle}
+                </Text>
+              </View>
             </View>
+          )}
+        />
+      </View>
+
+      <View>
+        <View className="mb-6 items-center">
+          <View className="flex-row items-center justify-center gap-2">
+            {SLIDES.map((_, index) => {
+              const isActive = index === currentIndex;
+              return (
+                // eslint-disable-next-line react/no-array-index-key
+                <View
+                  key={index}
+                  className={`h-2 rounded-full ${
+                    isActive ? "w-5 bg-primary" : "w-2.5 bg-neutral-700"
+                  }`}
+                />
+              );
+            })}
           </View>
         </View>
+        <TouchableOpacity
+          onPress={handleContinue}
+          className="w-full items-center justify-center rounded-2xl bg-primary py-4"
+          activeOpacity={0.9}
+        >
+          <Text className="text-base font-semibold text-white">Continue</Text>
+        </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
