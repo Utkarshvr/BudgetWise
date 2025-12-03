@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, router } from "expo-router";
-import { Text, View } from "react-native";
+import { Text, View, TextInput } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { AuthScaffold } from "./components/AuthScaffold";
 import { FormField } from "./components/FormField";
@@ -12,6 +12,8 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
 
   const handleSignUp = async () => {
     setError(null);
@@ -82,21 +84,30 @@ export default function SignUpScreen() {
           autoCapitalize="none"
           autoComplete="email"
           keyboardType="email-address"
+          returnKeyType="next"
+          onSubmitEditing={() => passwordRef.current?.focus()}
           onChangeText={setEmail}
           placeholder="you@email.com"
         />
         <FormField
+          ref={passwordRef}
           label="Password"
           value={password}
           secureTextEntry
           autoCapitalize="none"
+          returnKeyType="next"
+          onSubmitEditing={() => confirmPasswordRef.current?.focus()}
           onChangeText={setPassword}
           placeholder="Create a password"
         />
         <FormField
+          ref={confirmPasswordRef}
           label="Confirm password"
           value={confirmPassword}
           secureTextEntry
+          autoCapitalize="none"
+          returnKeyType="go"
+          onSubmitEditing={handleSignUp}
           onChangeText={setConfirmPassword}
           placeholder="Re-enter password"
         />

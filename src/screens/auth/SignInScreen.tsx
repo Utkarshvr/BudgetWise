@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, router } from "expo-router";
-import { Text, View } from "react-native";
+import { Text, View, TextInput } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { AuthScaffold } from "./components/AuthScaffold";
 import { FormField } from "./components/FormField";
@@ -11,6 +11,7 @@ export default function SignInScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
 
   const handleSignIn = async () => {
     setError(null);
@@ -68,14 +69,19 @@ export default function SignInScreen() {
           autoCapitalize="none"
           autoComplete="email"
           keyboardType="email-address"
+          returnKeyType="next"
+          onSubmitEditing={() => passwordRef.current?.focus()}
           onChangeText={setEmail}
           placeholder="you@email.com"
         />
         <FormField
+          ref={passwordRef}
           label="Password"
           value={password}
           secureTextEntry
           autoCapitalize="none"
+          returnKeyType="go"
+          onSubmitEditing={handleSignIn}
           onChangeText={setPassword}
           placeholder="••••••••"
         />
