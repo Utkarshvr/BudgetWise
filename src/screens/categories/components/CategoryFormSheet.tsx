@@ -157,13 +157,15 @@ export function CategoryFormSheet({
             </TouchableOpacity>
           </View>
 
-          <Text className="text-neutral-300 text-sm mb-2">Emoji</Text>
-          <TouchableOpacity
-            onPress={() => setShowEmojiMenu(true)}
-            className="w-20 h-20 rounded-3xl bg-neutral-800 items-center justify-center mb-6"
-          >
-            <Text style={{ fontSize: 36 }}>{formData.emoji}</Text>
-          </TouchableOpacity>
+          <View className="items-center mb-6">
+            <TouchableOpacity
+              onPress={() => setShowEmojiMenu(true)}
+              className="size-24 rounded-full items-center justify-center"
+              style={{ backgroundColor: formData.background_color }}
+            >
+              <Text style={{ fontSize: 48 }}>{formData.emoji}</Text>
+            </TouchableOpacity>
+          </View>
           {errors.emoji && (
             <Text className="text-red-500 text-sm mb-6">{errors.emoji}</Text>
           )}
@@ -174,40 +176,51 @@ export function CategoryFormSheet({
             onChangeText={(text) => setFormData({ ...formData, name: text })}
             placeholder="e.g., Groceries, Travel"
             placeholderTextColor="#6b7280"
-            className="bg-neutral-800 rounded-2xl px-4 py-3 text-white text-base mb-2"
+            className="bg-neutral-800 rounded-2xl px-4 py-3 text-white text-base mb-4"
           />
           {errors.name && (
             <Text className="text-red-500 text-sm mb-6">{errors.name}</Text>
           )}
-
-          <Text className="text-neutral-300 text-sm mb-3">Type</Text>
-          <View className="flex-row mb-6">
-            <TouchableOpacity
-              onPress={() => setFormData({ ...formData, category_type: "income" })}
-              className={`flex-1 px-4 py-3 rounded-xl mr-2 ${
-                formData.category_type === "income" ? "bg-green-600" : "bg-neutral-800"
-              }`}
-              disabled={category !== null} // Don't allow changing type when editing
-            >
-              <Text className="text-white text-sm font-medium text-center">
-                Income
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setFormData({ ...formData, category_type: "expense" })}
-              className={`flex-1 px-4 py-3 rounded-xl ${
-                formData.category_type === "expense" ? "bg-green-600" : "bg-neutral-800"
-              }`}
-              disabled={category !== null} // Don't allow changing type when editing
-            >
-              <Text className="text-white text-sm font-medium text-center">
-                Expense
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {!category && (
+            <>
+              <Text className="text-neutral-300 text-sm mb-3">Type</Text>
+              <View className="flex-row mb-6">
+                <TouchableOpacity
+                  onPress={() =>
+                    setFormData({ ...formData, category_type: "income" })
+                  }
+                  className={`flex-1 px-4 py-3 rounded-xl mr-2 ${
+                    formData.category_type === "income"
+                      ? "bg-green-600"
+                      : "bg-neutral-800"
+                  }`}
+                  disabled={category !== null} // Don't allow changing type when editing
+                >
+                  <Text className="text-white text-sm font-medium text-center">
+                    Income
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() =>
+                    setFormData({ ...formData, category_type: "expense" })
+                  }
+                  className={`flex-1 px-4 py-3 rounded-xl ${
+                    formData.category_type === "expense"
+                      ? "bg-green-600"
+                      : "bg-neutral-800"
+                  }`}
+                  disabled={category !== null} // Don't allow changing type when editing
+                >
+                  <Text className="text-white text-sm font-medium text-center">
+                    Expense
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
 
           <Text className="text-neutral-300 text-sm mb-3">Accent Color</Text>
-          <View className="flex-row flex-wrap mb-6">
+          <View className="flex-row flex-wrap mb-6 items-center justify-center">
             {CATEGORY_COLORS.map((color) => (
               <TouchableOpacity
                 key={color}
@@ -217,13 +230,15 @@ export function CategoryFormSheet({
                 style={{
                   width: 44,
                   height: 44,
-                  borderRadius: 12,
+                  borderRadius: 22,
                   marginRight: 12,
                   marginBottom: 12,
                   backgroundColor: color,
                   borderWidth: formData.background_color === color ? 3 : 0,
                   borderColor:
-                    formData.background_color === color ? "#22c55e" : "transparent",
+                    formData.background_color === color
+                      ? "#22c55e"
+                      : "transparent",
                 }}
               />
             ))}
@@ -246,7 +261,9 @@ export function CategoryFormSheet({
         <View className="flex-1 bg-black/60 justify-end">
           <View className="bg-neutral-900 rounded-t-3xl max-h-[70%]">
             <View className="flex-row items-center justify-between px-4 py-3 border-b border-neutral-800">
-              <Text className="text-white text-lg font-semibold">Choose Emoji</Text>
+              <Text className="text-white text-lg font-semibold">
+                Choose Emoji
+              </Text>
               <TouchableOpacity onPress={() => setShowEmojiMenu(false)}>
                 <MaterialIcons name="close" size={24} color="#9ca3af" />
               </TouchableOpacity>
@@ -261,10 +278,14 @@ export function CategoryFormSheet({
                 <TouchableOpacity
                   key={key}
                   onPress={() =>
-                    setSelectedEmojiCategory(key as keyof typeof EMOJI_CATEGORIES)
+                    setSelectedEmojiCategory(
+                      key as keyof typeof EMOJI_CATEGORIES
+                    )
                   }
                   className={`px-4 py-2 rounded-full mr-2 ${
-                    selectedEmojiCategory === key ? "bg-green-600/30" : "bg-neutral-800"
+                    selectedEmojiCategory === key
+                      ? "bg-green-600/30"
+                      : "bg-neutral-800"
                   }`}
                 >
                   <Text className="text-white text-sm font-medium">
@@ -303,5 +324,3 @@ export function CategoryFormSheet({
     </>
   );
 }
-
-
