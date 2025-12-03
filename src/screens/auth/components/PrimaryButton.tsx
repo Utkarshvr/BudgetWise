@@ -50,7 +50,7 @@ export function PrimaryButton({
           : "bg-neutral-900 dark:bg-white"
       } shadow-lg shadow-neutral-900/40 dark:shadow-black/30`}
     >
-      {!loading ? (
+      {loading ? (
         <ActivityIndicator color={scheme === "dark" ? "#0f172a" : "#f8fafc"} />
       ) : (
         <Text className="text-base font-semibold text-white dark:text-neutral-900">
