@@ -17,5 +17,5 @@ export default function Accounts() {
     return <Redirect href="/(auth)/(tabs)" />;
   }
 
-  return <Redirect href="/(public)/sign-in" />;
+  return <Redirect href="/(public)/onboarding" />;
 }
