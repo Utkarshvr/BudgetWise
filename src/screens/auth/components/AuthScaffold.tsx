@@ -67,7 +67,7 @@ export function AuthScaffold({
                 resizeMode="contain"
               />
 
-              <View className="w-full gap-6 rounded-3xl border border-neutral-100 bg-white/90 p-6 shadow-2xl shadow-neutral-900/10 dark:border-neutral-800 dark:bg-neutral-900/70 dark:shadow-black/30">
+              <View className="w-full gap-6">
                 {children}
               </View>
             </View>

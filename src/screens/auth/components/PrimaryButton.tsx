@@ -1,4 +1,9 @@
-import { ActivityIndicator, Pressable, Text } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  Text,
+  useColorScheme,
+} from "react-native";
 
 type PrimaryButtonProps = {
   label: string;
@@ -15,6 +20,8 @@ export function PrimaryButton({
   disabled,
   variant = "solid",
 }: PrimaryButtonProps) {
+  const scheme = useColorScheme();
+
   if (variant === "ghost") {
     return (
       <Pressable
@@ -23,7 +30,7 @@ export function PrimaryButton({
         className="h-12 items-center justify-center rounded-2xl border border-transparent bg-transparent"
       >
         {loading ? (
-          <ActivityIndicator color="#0f172a" />
+          <ActivityIndicator color={scheme === "dark" ? "#f8fafc" : "#0f172a"} />
         ) : (
           <Text className="text-base font-semibold text-neutral-900 dark:text-white">
             {label}
@@ -43,8 +50,8 @@ export function PrimaryButton({
           : "bg-neutral-900 dark:bg-white"
       } shadow-lg shadow-neutral-900/40 dark:shadow-black/30`}
     >
-      {loading ? (
-        <ActivityIndicator color="#f8fafc" />
+      {!loading ? (
+        <ActivityIndicator color={scheme === "dark" ? "#0f172a" : "#f8fafc"} />
       ) : (
         <Text className="text-base font-semibold text-white dark:text-neutral-900">
           {label}
@@ -53,5 +60,3 @@ export function PrimaryButton({
     </Pressable>
   );
 }
-
-
