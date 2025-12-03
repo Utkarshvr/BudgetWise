@@ -182,7 +182,7 @@ export function OnboardingScreen() {
           className="w-full items-center justify-center rounded-2xl bg-primary py-4"
           activeOpacity={0.9}
         >
-          <Text className="text-base font-semibold text-white">Continue</Text>
+          <Text className="text-base font-semibold text-primary-foreground">Continue</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

@@ -54,16 +54,16 @@ export function AuthScaffold({
             bounces={false}
           >
             <View
-              className="gap-8 py-8"
+              className="gap-8"
               style={{
-                justifyContent: "center",
                 flexGrow: 1,
                 alignItems: "center",
+                justifyContent: "flex-start",
               }}
             >
               <Image
-                source={require("@/assets/brand/icon.png")}
-                style={{ width: 120, height: 120, borderRadius: 999 }}
+                source={require("@/assets/brand/icon-nobg.png")}
+                style={{ width: 160, height: 160 }}
                 resizeMode="contain"
               />
 
