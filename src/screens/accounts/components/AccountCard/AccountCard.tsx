@@ -63,7 +63,11 @@ export function AccountCard({
     >
       <TouchableOpacity
         className="rounded-3xl"
-        onPress={() => onEdit(account)}
+        // onPress={() => onEdit(account)}
+        // onPress={(e) => {
+        //   e.stopPropagation();
+        //   onShowActions(account);
+        // }}
         activeOpacity={0.9}
         style={styles.cardInner}
       >

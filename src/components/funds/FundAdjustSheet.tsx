@@ -40,24 +40,27 @@ export function FundAdjustSheet({
   onSuccess,
 }: FundAdjustSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const prevVisibleRef = useRef(visible);
+  const amountInputRef = useRef<TextInput>(null);
+  const amountValueRef = useRef("");
+  const [amountInputKey, setAmountInputKey] = useState(0);
   const snapPoints = useMemo(() => ["45%", "65%"], []);
-  const [amount, setAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (visible) {
       bottomSheetRef.current?.present();
+      // Reset only when sheet opens (transitions from false to true)
+      if (!prevVisibleRef.current) {
+        amountValueRef.current = "";
+        setError(null);
+        setAmountInputKey((prev) => prev + 1);
+      }
     } else {
       bottomSheetRef.current?.dismiss();
     }
-  }, [visible]);
-
-  useEffect(() => {
-    if (visible) {
-      setAmount("");
-      setError(null);
-    }
+    prevVisibleRef.current = visible;
   }, [visible]);
 
   const renderBackdrop = useCallback(
@@ -98,8 +101,9 @@ export function FundAdjustSheet({
 
   const handleSubmit = async () => {
     if (!category || !account) return;
-    const amountNum = parseFloat(amount || "0");
-    if (!amount.trim().length || isNaN(amountNum) || amountNum <= 0) {
+    const currentAmount = amountValueRef.current || "0";
+    const amountNum = parseFloat(currentAmount);
+    if (!currentAmount.trim().length || isNaN(amountNum) || amountNum <= 0) {
       setError("Enter a valid amount");
       return;
     }
@@ -182,10 +186,12 @@ export function FundAdjustSheet({
         <View className="mb-4">
           <Text className="text-neutral-300 text-sm mb-2">Amount</Text>
           <TextInput
-            value={amount}
+            key={amountInputKey}
+            ref={amountInputRef}
+            defaultValue={amountValueRef.current}
             onChangeText={(text) => {
               setError(null);
-              setAmount(text.replace(/[^\d.]/g, ""));
+              amountValueRef.current = text.replace(/[^\d.]/g, "");
             }}
             placeholder="0.00"
             placeholderTextColor="#6b7280"

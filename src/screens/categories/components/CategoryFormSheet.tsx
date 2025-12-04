@@ -45,6 +45,9 @@ export function CategoryFormSheet({
     background_color: CATEGORY_COLORS[0],
     category_type: defaultCategoryType,
   });
+  const nameInputRef = useRef<TextInput>(null);
+  const nameValueRef = useRef("");
+  const [nameInputKey, setNameInputKey] = useState(0);
   const [errors, setErrors] = useState<
     Partial<Record<keyof CategoryFormData, string>>
   >({});
@@ -65,23 +68,29 @@ export function CategoryFormSheet({
 
   useEffect(() => {
     if (category) {
-      setFormData({
+      const newFormData = {
         name: category.name,
         emoji: category.emoji,
         background_color: category.background_color,
         category_type: category.category_type,
-      });
+      };
+      setFormData(newFormData);
+      nameValueRef.current = category.name;
+      setNameInputKey((prev) => prev + 1);
     } else {
-      setFormData({
+      const newFormData = {
         name: "",
         emoji: "📁",
         background_color: CATEGORY_COLORS[0],
         category_type: defaultCategoryType,
-      });
+      };
+      setFormData(newFormData);
+      nameValueRef.current = "";
+      setNameInputKey((prev) => prev + 1);
     }
     setErrors({});
     setShowEmojiMenu(false);
-  }, [category, visible, defaultCategoryType]);
+  }, [category, defaultCategoryType]);
 
   const renderBackdrop = useCallback(
     (props: any) => (
@@ -110,8 +119,9 @@ export function CategoryFormSheet({
 
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof CategoryFormData, string>> = {};
+    const currentName = nameValueRef.current.trim();
 
-    if (!formData.name.trim()) {
+    if (!currentName) {
       newErrors.name = "Category name is required";
     }
 
@@ -125,7 +135,7 @@ export function CategoryFormSheet({
 
   const handleSubmit = async () => {
     if (!validate()) return;
-    await onSubmit(formData);
+    await onSubmit({ ...formData, name: nameValueRef.current });
   };
 
   return (
@@ -172,8 +182,12 @@ export function CategoryFormSheet({
 
           <Text className="text-neutral-300 text-sm mb-2">Name</Text>
           <TextInput
-            value={formData.name}
-            onChangeText={(text) => setFormData({ ...formData, name: text })}
+            key={nameInputKey}
+            ref={nameInputRef}
+            defaultValue={nameValueRef.current}
+            onChangeText={(text) => {
+              nameValueRef.current = text;
+            }}
             placeholder="e.g., Groceries, Travel"
             placeholderTextColor="#6b7280"
             className="bg-neutral-800 rounded-2xl px-4 py-3 text-white text-base mb-4"

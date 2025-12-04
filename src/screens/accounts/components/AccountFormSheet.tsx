@@ -40,6 +40,12 @@ export function AccountFormSheet({
     currency: "INR", // Default, will be set from global settings
     balance: "",
   });
+  const nameInputRef = useRef<TextInput>(null);
+  const balanceInputRef = useRef<TextInput>(null);
+  const nameValueRef = useRef("");
+  const balanceValueRef = useRef("");
+  const [nameInputKey, setNameInputKey] = useState(0);
+  const [balanceInputKey, setBalanceInputKey] = useState(0);
   const [errors, setErrors] = useState<
     Partial<Record<keyof AccountFormData, string>>
   >({});
@@ -81,34 +87,46 @@ export function AccountFormSheet({
     if (account) {
       // Convert balance from smallest unit to display format
       const balanceInMainUnit = account.balance / 100;
-      setFormData({
+      const newFormData = {
         name: account.name,
         type: account.type,
         currency: account.currency,
         balance: balanceInMainUnit.toString(),
-      });
+      };
+      setFormData(newFormData);
+      nameValueRef.current = account.name;
+      balanceValueRef.current = balanceInMainUnit.toString();
+      setNameInputKey((prev) => prev + 1);
+      setBalanceInputKey((prev) => prev + 1);
     } else {
-      setFormData({
+      const newFormData = {
         name: "",
         type: "checking",
         currency: "INR",
         balance: "",
-      });
+      };
+      setFormData(newFormData);
+      nameValueRef.current = "";
+      balanceValueRef.current = "";
+      setNameInputKey((prev) => prev + 1);
+      setBalanceInputKey((prev) => prev + 1);
     }
     setErrors({});
-  }, [account, visible]);
+  }, [account]);
 
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof AccountFormData, string>> = {};
+    const currentName = nameValueRef.current.trim();
+    const currentBalance = balanceValueRef.current.trim();
 
-    if (!formData.name.trim()) {
+    if (!currentName) {
       newErrors.name = "Account name is required";
     }
 
-    if (!formData.balance.trim()) {
+    if (!currentBalance) {
       newErrors.balance = "Balance is required";
     } else {
-      const balanceNum = parseFloat(formData.balance);
+      const balanceNum = parseFloat(currentBalance);
       if (isNaN(balanceNum)) {
         newErrors.balance = "Balance must be a valid number";
       }
@@ -120,7 +138,7 @@ export function AccountFormSheet({
 
   const handleSubmit = async () => {
     if (!validate()) return;
-    await onSubmit(formData);
+    await onSubmit({ ...formData, name: nameValueRef.current, balance: balanceValueRef.current });
   };
 
   const formatBalance = (value: string): string => {
@@ -185,8 +203,12 @@ export function AccountFormSheet({
             Account Name
           </Text>
           <TextInput
-            value={formData.name}
-            onChangeText={(text) => setFormData({ ...formData, name: text })}
+            key={nameInputKey}
+            ref={nameInputRef}
+            defaultValue={nameValueRef.current}
+            onChangeText={(text) => {
+              nameValueRef.current = text;
+            }}
             placeholder="e.g., UBOI, Cash Wallet"
             placeholderTextColor="#6b7280"
             style={{
@@ -267,10 +289,20 @@ export function AccountFormSheet({
             Balance
           </Text>
           <TextInput
-            value={formData.balance}
-            onChangeText={(text) =>
-              setFormData({ ...formData, balance: formatBalance(text) })
-            }
+            key={balanceInputKey}
+            ref={balanceInputRef}
+            defaultValue={balanceValueRef.current}
+            onChangeText={(text) => {
+              balanceValueRef.current = formatBalance(text);
+            }}
+            onBlur={() => {
+              // Format on blur to avoid cursor jumping during typing
+              const formatted = formatBalance(balanceValueRef.current);
+              balanceValueRef.current = formatted;
+              if (balanceInputRef.current) {
+                balanceInputRef.current.setNativeProps({ text: formatted });
+              }
+            }}
             placeholder="0.00"
             placeholderTextColor="#6b7280"
             keyboardType="decimal-pad"
