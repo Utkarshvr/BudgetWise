@@ -8,15 +8,24 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useSupabaseSession } from "@/hooks/useSupabaseSession";
 import { Account } from "@/types/account";
-import { Transaction, TransactionFormData, TransactionType } from "@/types/transaction";
+import {
+  Transaction,
+  TransactionFormData,
+  TransactionType,
+} from "@/types/transaction";
 import { Category, CategoryReservation } from "@/types/category";
 import { TransactionTypeSheet } from "./components/TransactionTypeSheet";
 import { AccountSelectSheet } from "./components/AccountSelectSheet";
+import { ACCOUNT_TYPE_ICONS } from "@/screens/accounts/utils";
+import { useThemeColors } from "@/constants/theme";
 
 type TransactionFormScreenProps = {
   initialAmount?: string;
@@ -37,12 +46,16 @@ export default function TransactionFormScreen({
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [reservations, setReservations] = useState<CategoryReservation[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null
+  );
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showTypeSheet, setShowTypeSheet] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
-  const [accountSheetMode, setAccountSheetMode] = useState<"from" | "to">("from");
+  const [accountSheetMode, setAccountSheetMode] = useState<"from" | "to">(
+    "from"
+  );
 
   // Initialize form data based on whether we're editing or adding
   const getInitialFormData = (): TransactionFormData => {
@@ -68,7 +81,8 @@ export default function TransactionFormScreen({
     };
   };
 
-  const [formData, setFormData] = useState<TransactionFormData>(getInitialFormData());
+  const [formData, setFormData] =
+    useState<TransactionFormData>(getInitialFormData());
 
   const [errors, setErrors] = useState<
     Partial<Record<keyof TransactionFormData, string>>
@@ -210,15 +224,17 @@ export default function TransactionFormScreen({
         if (reservation) {
           const amountNum = parseFloat(formData.amount || "0");
           const amountSmallest = Math.round(amountNum * 100);
-          
+
           // For editing, we need to account for the old amount being added back
-          const oldAmount = isEditing && transaction?.type === "expense" 
-            ? transaction.amount 
-            : 0;
+          const oldAmount =
+            isEditing && transaction?.type === "expense"
+              ? transaction.amount
+              : 0;
           const availableAmount = reservation.reserved_amount + oldAmount;
 
           if (amountSmallest > availableAmount) {
-            newErrors.amount = "Amount exceeds reserved balance for this category";
+            newErrors.amount =
+              "Amount exceeds reserved balance for this category";
           }
         }
       }
@@ -298,10 +314,16 @@ export default function TransactionFormScreen({
         if (error) throw error;
 
         // Handle reservation adjustments for expense transactions
-        if (transaction.type === "expense" && oldCategoryId && oldFromAccountId) {
+        if (
+          transaction.type === "expense" &&
+          oldCategoryId &&
+          oldFromAccountId
+        ) {
           // Add back the old amount to reservation
           const oldReservation = reservations.find(
-            (r) => r.category_id === oldCategoryId && r.account_id === oldFromAccountId
+            (r) =>
+              r.category_id === oldCategoryId &&
+              r.account_id === oldFromAccountId
           );
 
           if (oldReservation) {
@@ -495,13 +517,41 @@ export default function TransactionFormScreen({
   const getTypeIcon = () => {
     switch (formData.type) {
       case "expense":
-        return "inbox";
+        return "arrow-outward";
       case "income":
-        return "add-circle-outline";
+        return "arrow-outward";
       case "transfer":
         return "sync-alt";
       default:
-        return "inbox";
+        return "arrow-outward";
+    }
+  };
+
+  const colors = useThemeColors();
+
+  const getTypeIconColor = () => {
+    switch (formData.type) {
+      case "expense":
+        return colors.transaction.expense.badgeIcon;
+      case "income":
+        return colors.transaction.income.badgeIcon;
+      case "transfer":
+        return colors.transaction.transfer.badgeIcon;
+      default:
+        return colors.transaction.expense.badgeIcon;
+    }
+  };
+
+  const getNotePlaceholder = () => {
+    switch (formData.type) {
+      case "expense":
+        return "What did you spend on?";
+      case "income":
+        return "What did you receive?";
+      case "transfer":
+        return "Transfer note (optional)";
+      default:
+        return "What did you spend on?";
     }
   };
 
@@ -509,6 +559,30 @@ export default function TransactionFormScreen({
     if (!accountId) return "Select Account";
     const account = accounts.find((a) => a.id === accountId);
     return account?.name || "Select Account";
+  };
+
+  const getAccountTypeColor = (type: Account["type"]): string => {
+    const colorMap: Record<Account["type"], string> = {
+      cash: "#22c55e", // green-500
+      checking: "#3b82f6", // blue-500
+      savings: "#a855f7", // purple-500
+      credit_card: "#f97316", // orange-500
+    };
+    return colorMap[type] || "#6b7280";
+  };
+
+  const getAccountIcon = (accountId: string | null) => {
+    if (!accountId) return "account-balance-wallet";
+    const account = accounts.find((a) => a.id === accountId);
+    return account
+      ? (ACCOUNT_TYPE_ICONS[account.type] as any)
+      : "account-balance-wallet";
+  };
+
+  const getAccountIconColor = (accountId: string | null) => {
+    if (!accountId) return "white";
+    const account = accounts.find((a) => a.id === accountId);
+    return account ? getAccountTypeColor(account.type) : "white";
   };
 
   // Categories to display based on transaction type
@@ -535,12 +609,13 @@ export default function TransactionFormScreen({
           // If no reservation exists, keep it null (don't show "left" text)
           if (reservation) {
             // For editing, add back the old amount if it's the same category/account
-            const oldAmount = isEditing && 
+            const oldAmount =
+              isEditing &&
               transaction?.type === "expense" &&
               transaction.category_id === category.id &&
               transaction.from_account_id === formData.from_account_id
-              ? transaction.amount
-              : 0;
+                ? transaction.amount
+                : 0;
             amountLeft = (reservation.reserved_amount + oldAmount) / 100;
           }
         }
@@ -550,7 +625,14 @@ export default function TransactionFormScreen({
           amountLeft,
         };
       });
-  }, [categories, reservations, formData.type, formData.from_account_id, isEditing, transaction]);
+  }, [
+    categories,
+    reservations,
+    formData.type,
+    formData.from_account_id,
+    isEditing,
+    transaction,
+  ]);
 
   if (loadingAccounts) {
     return (
@@ -579,7 +661,6 @@ export default function TransactionFormScreen({
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
         >
-
           {/* Amount Field (only for editing) */}
           {isEditing && (
             <View className="px-4 py-4 border-b border-neutral-800">
@@ -587,7 +668,9 @@ export default function TransactionFormScreen({
                 <Text className="text-neutral-400 text-base w-16">Amount</Text>
                 <TextInput
                   value={formData.amount}
-                  onChangeText={(text) => setFormData({ ...formData, amount: text })}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, amount: text })
+                  }
                   placeholder="0.00"
                   placeholderTextColor="#6b7280"
                   keyboardType="decimal-pad"
@@ -608,14 +691,18 @@ export default function TransactionFormScreen({
               <Text className="text-neutral-400 text-base w-16">For</Text>
               <TextInput
                 value={formData.note}
-                onChangeText={(text) => setFormData({ ...formData, note: text })}
-                placeholder="What did you spend on?"
+                onChangeText={(text) =>
+                  setFormData({ ...formData, note: text })
+                }
+                placeholder={getNotePlaceholder()}
                 placeholderTextColor="#6b7280"
                 className="flex-1 text-white text-base"
               />
             </View>
             {errors.note && (
-              <Text className="text-red-500 text-sm mt-1 ml-16">{errors.note}</Text>
+              <Text className="text-red-500 text-sm mt-1 ml-16">
+                {errors.note}
+              </Text>
             )}
           </View>
 
@@ -630,8 +717,15 @@ export default function TransactionFormScreen({
                 <MaterialIcons
                   name={getTypeIcon() as any}
                   size={20}
-                  color="white"
-                  style={{ marginRight: 8 }}
+                  color={getTypeIconColor()}
+                  style={{
+                    marginRight: 8,
+                    transform: [
+                      {
+                        rotate: formData.type === "income" ? "180deg" : "0deg",
+                      },
+                    ],
+                  }}
                 />
                 <Text className="text-white text-base">{getTypeLabel()}</Text>
               </View>
@@ -648,9 +742,9 @@ export default function TransactionFormScreen({
                 <View className="flex-row items-center flex-1">
                   <Text className="text-neutral-400 text-base w-16">From</Text>
                   <MaterialIcons
-                    name="account-balance-wallet"
+                    name={getAccountIcon(formData.from_account_id)}
                     size={20}
-                    color="white"
+                    color={getAccountIconColor(formData.from_account_id)}
                     style={{ marginRight: 8 }}
                   />
                   <Text className="text-white text-base">
@@ -676,9 +770,9 @@ export default function TransactionFormScreen({
                 <View className="flex-row items-center flex-1">
                   <Text className="text-neutral-400 text-base w-16">To</Text>
                   <MaterialIcons
-                    name="account-balance-wallet"
+                    name={getAccountIcon(formData.to_account_id)}
                     size={20}
-                    color="white"
+                    color={getAccountIconColor(formData.to_account_id)}
                     style={{ marginRight: 8 }}
                   />
                   <Text className="text-white text-base">
@@ -694,22 +788,29 @@ export default function TransactionFormScreen({
             </TouchableOpacity>
           )}
 
-          {/* Date Field (read-only for now; uses selectedDate from formData.date) */}
-          <View className="px-4 py-4 border-b border-neutral-800">
-            <View className="flex-row items-center flex-1">
-              <Text className="text-neutral-400 text-base w-16">Date</Text>
-              <Text className="text-white text-base">
-                {formatDisplayDate(selectedDate)}
-              </Text>
+          {/* Date Field - Always visible for all transaction types */}
+          {true && (
+            <View
+              key={`date-field-${formData.type}`}
+              className="px-4 py-4 border-b border-neutral-800"
+            >
+              <View className="flex-row items-center">
+                <Text className="text-neutral-400 text-base w-16">Date</Text>
+                <Text className="text-white text-base">
+                  {formatDisplayDate(selectedDate)}
+                </Text>
+              </View>
             </View>
-          </View>
+          )}
 
           {/* Categories List (Income / Expense) */}
           {(formData.type === "expense" || formData.type === "income") &&
             displayCategories.length > 0 && (
               <View className="px-4 py-6">
                 <Text className="text-neutral-500 text-xs font-semibold uppercase mb-3">
-                  {formData.type === "income" ? "INCOME CATEGORIES" : "CATEGORIES"}
+                  {formData.type === "income"
+                    ? "INCOME CATEGORIES"
+                    : "CATEGORIES"}
                 </Text>
                 {displayCategories.map(({ category, amountLeft }) => (
                   <TouchableOpacity
@@ -760,7 +861,6 @@ export default function TransactionFormScreen({
                 ))}
               </View>
             )}
-
         </ScrollView>
 
         {/* Add/Update Transaction Button - Fixed at Bottom */}
@@ -811,8 +911,6 @@ export default function TransactionFormScreen({
         onClose={() => setShowAccountSheet(false)}
         onSelect={handleAccountSelect}
       />
-
     </>
   );
 }
-

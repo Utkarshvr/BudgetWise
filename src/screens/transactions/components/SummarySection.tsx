@@ -7,14 +7,26 @@ import { formatAmount } from "../utils/formatting";
 type SummarySectionProps = {
   filteredTransactions: Transaction[];
   colors: ThemeColors;
+  loading?: boolean;
 };
 
 export function SummarySection({
   filteredTransactions,
   colors,
+  loading = false,
 }: SummarySectionProps) {
   // Calculate income and expense totals
   const { incomeTotal, expenseTotal, currency, total } = useMemo(() => {
+    // Show 0 when loading
+    if (loading) {
+      return {
+        incomeTotal: 0,
+        expenseTotal: 0,
+        total: 0,
+        currency: "INR",
+      };
+    }
+
     let income = 0;
     let expense = 0;
     let defaultCurrency = "INR";
@@ -39,7 +51,7 @@ export function SummarySection({
       total: income - expense,
       currency: defaultCurrency,
     };
-  }, [filteredTransactions]);
+  }, [filteredTransactions, loading]);
 
   return (
     <View className="py-2 bg-background-subtle flex-row items-center justify-center mb-2">

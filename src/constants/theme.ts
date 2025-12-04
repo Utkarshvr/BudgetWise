@@ -64,7 +64,7 @@ const darkColors = {
     },
     transfer: {
       badgeBg: "#1e3a8a",
-      badgeIcon: "#bfdbfe",
+      badgeIcon: "#fff",
       amountClass: "text-neutral-200",
     },
     goal: {
@@ -166,7 +166,7 @@ const lightColors = {
     },
     transfer: {
       badgeBg: "#eff6ff",
-      badgeIcon: "#1d4ed8",
+      badgeIcon: "#fff",
       amountClass: "text-slate-900",
     },
     goal: {

@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef, useMemo } from "react";
-import { ScrollView, RefreshControl, View, Alert, Modal } from "react-native";
+import { useState, useCallback, useMemo } from "react";
+import { ScrollView, RefreshControl, Alert, Modal, View, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
@@ -8,13 +8,10 @@ import { useSupabaseSession } from "@/hooks/useSupabaseSession";
 import { useThemeColors } from "@/constants/theme";
 import { useTransactionsData } from "./hooks/useTransactionsData";
 import { buildTypeMeta } from "./utils/typeMeta";
-import { type DateRangeFilter } from "./utils/dateRange";
-import { FilterDropdown } from "./components/FilterDropdown";
 import { TransactionsHeader } from "./components/TransactionsHeader";
 import { SummarySection } from "./components/SummarySection";
 import { TransactionsList } from "./components/TransactionsList";
 import { EmptyState } from "./components/EmptyState";
-import { FullScreenLoader } from "./components/FullScreenLoader";
 import { TransactionActionSheet } from "./components/TransactionActionSheet";
 import { Transaction } from "@/types/transaction";
 import { supabase } from "@/lib/supabase";
@@ -28,8 +25,6 @@ export default function TransactionsScreen() {
   const {
     loading,
     refreshing,
-    filterType,
-    setFilterType,
     currentDateRange,
     filteredAndGroupedTransactions,
     handleRefresh,
@@ -37,44 +32,12 @@ export default function TransactionsScreen() {
     handleNextPeriod,
   } = useTransactionsData(session);
 
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const filterButtonRef = useRef<View | null>(null);
-  const [filterButtonLayout, setFilterButtonLayout] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>(null);
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null);
-
-  const handleFilterTypeChange = useCallback(
-    (type: DateRangeFilter) => {
-      setFilterType(type);
-      setShowFilterDropdown(false);
-    },
-    [setFilterType]
-  );
-
-  const handleCloseDropdown = useCallback(() => {
-    setShowFilterDropdown(false);
-  }, []);
-
-  const handleToggleDropdown = useCallback(() => {
-    if (!showFilterDropdown) {
-      // Measure button position before showing dropdown
-      filterButtonRef.current?.measureInWindow((x, y, width, height) => {
-        setFilterButtonLayout({ x, y, width, height });
-        setShowFilterDropdown(true);
-      });
-    } else {
-      setShowFilterDropdown(false);
-    }
-  }, [showFilterDropdown]);
 
   const handleTransactionPress = useCallback((transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -161,10 +124,6 @@ export default function TransactionsScreen() {
     (group) => group.transactions
   );
 
-  if (loading) {
-    return <FullScreenLoader colors={colors} />;
-  }
-
   return (
     <SafeAreaView
       className="flex-1"
@@ -184,20 +143,22 @@ export default function TransactionsScreen() {
           <TransactionsHeader
             totalCount={totalCount}
             colors={colors}
-            filterType={filterType}
             currentDateRange={currentDateRange}
             onPrev={handlePreviousPeriod}
             onNext={handleNextPeriod}
-            onFilterPress={handleToggleDropdown}
-            filterButtonRef={filterButtonRef}
           />
 
           <SummarySection
             filteredTransactions={filteredTransactions}
             colors={colors}
+            loading={loading || refreshing}
           />
 
-          {filteredAndGroupedTransactions.length > 0 ? (
+          {loading && !refreshing ? (
+            <View className="py-8 items-center justify-center">
+              <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+            </View>
+          ) : filteredAndGroupedTransactions.length > 0 ? (
             <TransactionsList
               grouped={filteredAndGroupedTransactions}
               colors={colors}
@@ -209,16 +170,6 @@ export default function TransactionsScreen() {
           )}
         </ScrollView>
       </GestureDetector>
-
-      {showFilterDropdown && filterButtonLayout && (
-        <FilterDropdown
-          visible={showFilterDropdown}
-          filterType={filterType}
-          onClose={handleCloseDropdown}
-          onSelect={handleFilterTypeChange}
-          buttonLayout={filterButtonLayout}
-        />
-      )}
 
       <TransactionActionSheet
         visible={showActionSheet}

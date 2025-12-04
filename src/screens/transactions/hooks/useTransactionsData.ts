@@ -1,25 +1,28 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Session } from "@supabase/supabase-js";
 import { Alert } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { Transaction } from "@/types/transaction";
-import { getDateRangeForPeriod, type DateRangeFilter } from "../utils/dateRange";
+import { getDateRangeForPeriod } from "../utils/dateRange";
 
 export function useTransactionsData(session: Session | null) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filterType, setFilterType] = useState<DateRangeFilter>("month");
   const [currentPeriodDate, setCurrentPeriodDate] = useState(new Date());
 
-  useEffect(() => {
-    if (session) {
-      fetchTransactions();
-    }
-  }, [session]);
+  // Calculate current date range (always month)
+  const currentDateRange = useMemo(() => {
+    return getDateRangeForPeriod("month", currentPeriodDate);
+  }, [currentPeriodDate]);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     if (!session?.user) return;
+
+    const { start, end } = currentDateRange;
+    
+    // Set loading state
+    setLoading(true);
 
     try {
       const { data, error } = await supabase
@@ -33,6 +36,8 @@ export function useTransactionsData(session: Session | null) {
         `
         )
         .eq("user_id", session.user.id)
+        .gte("created_at", start.toISOString())
+        .lte("created_at", end.toISOString())
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -43,7 +48,14 @@ export function useTransactionsData(session: Session | null) {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [session, currentDateRange]);
+
+  // Fetch transactions when session or date range changes
+  useEffect(() => {
+    if (session) {
+      fetchTransactions();
+    }
+  }, [session, fetchTransactions]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -52,52 +64,21 @@ export function useTransactionsData(session: Session | null) {
 
   const handlePreviousPeriod = () => {
     const newDate = new Date(currentPeriodDate);
-    if (filterType === "week") {
-      newDate.setDate(newDate.getDate() - 7);
-    } else if (filterType === "month") {
-      newDate.setMonth(newDate.getMonth() - 1);
-    } else if (filterType === "year") {
-      newDate.setFullYear(newDate.getFullYear() - 1);
-    }
+    newDate.setMonth(newDate.getMonth() - 1);
     setCurrentPeriodDate(newDate);
   };
 
   const handleNextPeriod = () => {
     const newDate = new Date(currentPeriodDate);
-    if (filterType === "week") {
-      newDate.setDate(newDate.getDate() + 7);
-    } else if (filterType === "month") {
-      newDate.setMonth(newDate.getMonth() + 1);
-    } else if (filterType === "year") {
-      newDate.setFullYear(newDate.getFullYear() + 1);
-    }
+    newDate.setMonth(newDate.getMonth() + 1);
     setCurrentPeriodDate(newDate);
   };
 
-  const handleFilterTypeChange = (type: DateRangeFilter) => {
-    setFilterType(type);
-    // Reset to current period when changing filter type
-    setCurrentPeriodDate(new Date());
-  };
-
-  // Calculate current date range
-  const currentDateRange = useMemo(() => {
-    return getDateRangeForPeriod(filterType, currentPeriodDate);
-  }, [filterType, currentPeriodDate]);
-
-  // Filter and group transactions by date
+  // Group transactions by date
   const filteredAndGroupedTransactions = useMemo(() => {
-    const { start, end } = currentDateRange;
-
-    // Filter transactions within date range
-    const filtered = transactions.filter((transaction) => {
-      const transactionDate = new Date(transaction.created_at);
-      return transactionDate >= start && transactionDate <= end;
-    });
-
     // Group by date
     const grouped: Record<string, Transaction[]> = {};
-    filtered.forEach((transaction) => {
+    transactions.forEach((transaction) => {
       const dateKey = new Date(transaction.created_at).toDateString();
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
@@ -117,14 +98,12 @@ export function useTransactionsData(session: Session | null) {
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         ),
       }));
-  }, [transactions, currentDateRange]);
+  }, [transactions]);
 
   return {
     transactions,
     loading,
     refreshing,
-    filterType,
-    setFilterType: handleFilterTypeChange,
     currentPeriodDate,
     setCurrentPeriodDate,
     currentDateRange,
