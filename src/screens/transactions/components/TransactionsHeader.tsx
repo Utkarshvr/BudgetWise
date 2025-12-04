@@ -33,7 +33,7 @@ export function TransactionsHeader({
           <MaterialIcons
             name="chevron-left"
             size={28}
-            color={colors.primary.DEFAULT}
+            color={colors.foreground}
           />
         </TouchableOpacity>
         <TouchableOpacity
@@ -42,8 +42,8 @@ export function TransactionsHeader({
           className="px-3 py-1"
         >
           <Text
-            className="text-base font-semibold text-center"
-            style={{ color: colors.foreground }}
+            className="text-base font-bold text-center text-foreground"
+            // style={{ color: colors.foreground }}
           >
             {formatDateRange(
               currentDateRange.start,
@@ -56,7 +56,7 @@ export function TransactionsHeader({
           <MaterialIcons
             name="chevron-right"
             size={28}
-            color={colors.primary.DEFAULT}
+            color={colors.foreground}
           />
         </TouchableOpacity>
       </View>

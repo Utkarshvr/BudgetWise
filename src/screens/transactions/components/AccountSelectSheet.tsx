@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo, useCallback } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
@@ -7,6 +7,12 @@ import {
 } from "@gorhom/bottom-sheet";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Account } from "@/types/account";
+import { CategoryReservation } from "@/types/category";
+import {
+  ACCOUNT_TYPE_ICONS,
+  formatBalance,
+  getTotalReserved,
+} from "@/screens/accounts/utils";
 
 type AccountSelectSheetProps = {
   visible: boolean;
@@ -14,6 +20,7 @@ type AccountSelectSheetProps = {
   selectedAccountId: string | null;
   title?: string;
   excludeAccountId?: string | null;
+  reservations?: CategoryReservation[];
   onClose: () => void;
   onSelect: (account: Account) => void;
 };
@@ -24,6 +31,7 @@ export function AccountSelectSheet({
   selectedAccountId,
   title = "Select Account",
   excludeAccountId,
+  reservations = [],
   onClose,
   onSelect,
 }: AccountSelectSheetProps) {
@@ -89,84 +97,85 @@ export function AccountSelectSheet({
       handleIndicatorStyle={{ backgroundColor: "#525252" }}
       backdropComponent={renderBackdrop}
     >
-      <BottomSheetView style={styles.container}>
-        <Text style={styles.title}>{title}</Text>
+      <BottomSheetView className="flex-1 px-6 pt-4 pb-8">
+        <Text className="text-xl font-semibold text-white text-center mb-6">
+          {title}
+        </Text>
 
-        <View style={styles.accountsList}>
-          {filteredAccounts.map((account) => (
-            <TouchableOpacity
-              key={account.id}
-              onPress={() => handleSelect(account)}
-              style={styles.accountOption}
-            >
-              <View style={styles.accountInfo}>
-                <MaterialIcons
-                  name="account-balance-wallet"
-                  size={24}
-                  color="white"
-                  style={{ marginRight: 12 }}
-                />
-                <Text style={styles.accountName}>{account.name}</Text>
-              </View>
-              {selectedAccountId === account.id && (
-                <MaterialIcons name="check-circle" size={24} color="#3b82f6" />
-              )}
-            </TouchableOpacity>
-          ))}
+        <View className="flex-1">
+          {filteredAccounts.map((account) => {
+            const reservedTotal = getTotalReserved(account.id, reservations);
+            const spendable = Math.max(account.balance - reservedTotal, 0);
+            const totalBalance = account.balance;
+
+            return (
+              <TouchableOpacity
+                key={account.id}
+                onPress={() => handleSelect(account)}
+                className="flex-row justify-between items-center py-4 px-1 border-b border-neutral-700"
+              >
+                <View className="flex-row items-center flex-1">
+                  <View
+                    className="w-11 h-11 rounded-xl items-center justify-center mr-3"
+                    style={{ backgroundColor: getAccountTypeColor(account.type) }}
+                  >
+                    <MaterialIcons
+                      name={ACCOUNT_TYPE_ICONS[account.type] as any}
+                      size={20}
+                      color="white"
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-lg font-semibold text-white mb-2">
+                      {account.name}
+                    </Text>
+                    <View className="bg-background-subtle px-2 py-1 rounded-lg border border-border self-start">
+                      <Text className="text-sm font-medium">
+                        <Text className="text-foreground">
+                          {formatBalance(totalBalance, account.currency)}
+                        </Text>
+                        <Text className="text-neutral-500"> | </Text>
+                        <Text className="text-primary">
+                          {formatBalance(spendable, account.currency)}
+                        </Text>
+                        {/* {reservedTotal > 0 && (
+                          <>
+                            <Text className="text-neutral-500"> | </Text>
+                            <Text className="text-yellow-400">
+                              {formatBalance(reservedTotal, account.currency)}
+                            </Text>
+                          </>
+                        )} */}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                {selectedAccountId === account.id && (
+                  <MaterialIcons name="check-circle" size={24} color="#3b82f6" />
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
-        <TouchableOpacity onPress={onClose} style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save and close</Text>
+        <TouchableOpacity
+          onPress={onClose}
+          className="mt-6 bg-white rounded-3xl py-4 items-center"
+        >
+          <Text className="text-base font-semibold text-black">Save and close</Text>
         </TouchableOpacity>
       </BottomSheetView>
     </BottomSheetModal>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 32,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "white",
-    textAlign: "center",
-    marginBottom: 24,
-  },
-  accountsList: {
-    flex: 1,
-  },
-  accountOption: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 4,
-  },
-  accountInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  accountName: {
-    fontSize: 18,
-    color: "white",
-  },
-  saveButton: {
-    marginTop: 24,
-    backgroundColor: "white",
-    borderRadius: 24,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "black",
-  },
-});
+const getAccountTypeColor = (type: Account["type"]): string => {
+  const colorMap: Record<Account["type"], string> = {
+    cash: "#22c55e", // green-500
+    checking: "#3b82f6", // blue-500
+    savings: "#a855f7", // purple-500
+    credit_card: "#f97316", // orange-500
+  };
+  return colorMap[type] || "#6b7280";
+};
 

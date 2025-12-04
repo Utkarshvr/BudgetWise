@@ -450,11 +450,20 @@ export default function TransactionFormScreen({
   };
 
   const handleCategorySelect = (category: Category | null) => {
-    setSelectedCategory(category);
-    setFormData({
-      ...formData,
-      category_id: category?.id || null,
-    });
+    // If clicking on the already selected category, deselect it
+    if (selectedCategory?.id === category?.id) {
+      setSelectedCategory(null);
+      setFormData({
+        ...formData,
+        category_id: null,
+      });
+    } else {
+      setSelectedCategory(category);
+      setFormData({
+        ...formData,
+        category_id: category?.id || null,
+      });
+    }
   };
 
   const handleAccountSelect = (account: Account) => {
@@ -798,6 +807,7 @@ export default function TransactionFormScreen({
             ? formData.from_account_id
             : null
         }
+        reservations={reservations}
         onClose={() => setShowAccountSheet(false)}
         onSelect={handleAccountSelect}
       />

@@ -1,7 +1,9 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { ScrollView, RefreshControl, View, Alert, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { GestureDetector, Gesture } from "react-native-gesture-handler";
+import { runOnJS } from "react-native-reanimated";
 import { useSupabaseSession } from "@/hooks/useSupabaseSession";
 import { useThemeColors } from "@/constants/theme";
 import { useTransactionsData } from "./hooks/useTransactionsData";
@@ -43,15 +45,20 @@ export default function TransactionsScreen() {
     width: number;
     height: number;
   } | null>(null);
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
 
-  const handleFilterTypeChange = useCallback((type: DateRangeFilter) => {
-    setFilterType(type);
-    setShowFilterDropdown(false);
-  }, [setFilterType]);
+  const handleFilterTypeChange = useCallback(
+    (type: DateRangeFilter) => {
+      setFilterType(type);
+      setShowFilterDropdown(false);
+    },
+    [setFilterType]
+  );
 
   const handleCloseDropdown = useCallback(() => {
     setShowFilterDropdown(false);
@@ -85,38 +92,64 @@ export default function TransactionsScreen() {
     setShowTransactionForm(true);
   }, []);
 
-  const handleDeleteTransaction = useCallback((transaction: Transaction) => {
-    Alert.alert(
-      "Delete Transaction",
-      `Are you sure you want to delete "${transaction.note}"?`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from("transactions")
-                .delete()
-                .eq("id", transaction.id)
-                .eq("user_id", session?.user.id);
-
-              if (error) throw error;
-
-              Alert.alert("Success", "Transaction deleted successfully");
-              handleRefresh();
-            } catch (error: any) {
-              Alert.alert("Error", error.message || "Failed to delete transaction");
-            }
+  const handleDeleteTransaction = useCallback(
+    (transaction: Transaction) => {
+      Alert.alert(
+        "Delete Transaction",
+        `Are you sure you want to delete "${transaction.note}"?`,
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
           },
-        },
-      ]
-    );
-  }, [handleRefresh, session?.user.id]);
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                const { error } = await supabase
+                  .from("transactions")
+                  .delete()
+                  .eq("id", transaction.id)
+                  .eq("user_id", session?.user.id);
+
+                if (error) throw error;
+
+                Alert.alert("Success", "Transaction deleted successfully");
+                handleRefresh();
+              } catch (error: any) {
+                Alert.alert(
+                  "Error",
+                  error.message || "Failed to delete transaction"
+                );
+              }
+            },
+          },
+        ]
+      );
+    },
+    [handleRefresh, session?.user.id]
+  );
+
+  // Swipe gesture handler for navigating between months
+  const swipeGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-10, 10]) // Activate when horizontal movement exceeds 10px
+        .failOffsetY([-5, 5]) // Fail if vertical movement exceeds 5px (prevents interference with ScrollView)
+        .onEnd((event) => {
+          const { translationX } = event;
+          // Swipe left (positive translationX) = next month
+          if (translationX < -50) {
+            runOnJS(handleNextPeriod)();
+          }
+          // Swipe right (negative translationX) = previous month
+          else if (translationX > 50) {
+            runOnJS(handlePreviousPeriod)();
+          }
+        }),
+    [handleNextPeriod, handlePreviousPeriod]
+  );
 
   const totalCount = filteredAndGroupedTransactions.reduce(
     (sum, group) => sum + group.transactions.length,
@@ -137,43 +170,45 @@ export default function TransactionsScreen() {
       className="flex-1"
       style={{ backgroundColor: colors.background.DEFAULT }}
     >
-      <ScrollView
-        className="flex-1"
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.primary.DEFAULT}
-          />
-        }
-      >
-        <TransactionsHeader
-          totalCount={totalCount}
-          colors={colors}
-          filterType={filterType}
-          currentDateRange={currentDateRange}
-          onPrev={handlePreviousPeriod}
-          onNext={handleNextPeriod}
-          onFilterPress={handleToggleDropdown}
-          filterButtonRef={filterButtonRef}
-        />
-
-        <SummarySection
-          filteredTransactions={filteredTransactions}
-          colors={colors}
-        />
-
-        {filteredAndGroupedTransactions.length > 0 ? (
-          <TransactionsList
-            grouped={filteredAndGroupedTransactions}
+      <GestureDetector gesture={swipeGesture}>
+        <ScrollView
+          className="flex-1"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary.DEFAULT}
+            />
+          }
+        >
+          <TransactionsHeader
+            totalCount={totalCount}
             colors={colors}
-            typeMeta={typeMeta}
-            onTransactionPress={handleTransactionPress}
+            filterType={filterType}
+            currentDateRange={currentDateRange}
+            onPrev={handlePreviousPeriod}
+            onNext={handleNextPeriod}
+            onFilterPress={handleToggleDropdown}
+            filterButtonRef={filterButtonRef}
           />
-        ) : (
-          <EmptyState colors={colors} />
-        )}
-      </ScrollView>
+
+          <SummarySection
+            filteredTransactions={filteredTransactions}
+            colors={colors}
+          />
+
+          {filteredAndGroupedTransactions.length > 0 ? (
+            <TransactionsList
+              grouped={filteredAndGroupedTransactions}
+              colors={colors}
+              typeMeta={typeMeta}
+              onTransactionPress={handleTransactionPress}
+            />
+          ) : (
+            <EmptyState colors={colors} />
+          )}
+        </ScrollView>
+      </GestureDetector>
 
       {showFilterDropdown && filterButtonLayout && (
         <FilterDropdown
