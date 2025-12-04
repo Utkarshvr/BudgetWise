@@ -1,5 +1,13 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { ScrollView, RefreshControl, Alert, Modal, View, ActivityIndicator, Dimensions } from "react-native";
+import {
+  ScrollView,
+  RefreshControl,
+  Alert,
+  Modal,
+  View,
+  ActivityIndicator,
+  Dimensions,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
@@ -214,10 +222,13 @@ export default function TransactionsScreen() {
             loading={loading || refreshing}
           />
 
-          <Animated.View style={animatedListStyle}>
+          <Animated.View style={animatedListStyle} className={"pb-12"}>
             {loading && !refreshing ? (
               <View className="py-8 items-center justify-center">
-                <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+                <ActivityIndicator
+                  size="large"
+                  color={colors.primary.DEFAULT}
+                />
               </View>
             ) : filteredAndGroupedTransactions.length > 0 ? (
               <TransactionsList
