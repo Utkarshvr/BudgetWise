@@ -34,13 +34,7 @@ export function CategoryCard({
 
   return (
     <View
-      className="rounded-xl mb-3 overflow-hidden"
-      style={{
-        backgroundColor:
-          category.category_type === "expense"
-            ? theme.colors.categoryCardBg.expense
-            : theme.colors.categoryCardBg.income,
-      }}
+      className="rounded-xl mb-3 overflow-hidden bg-background-subtle"
     >
       <TouchableOpacity
         activeOpacity={0.85}
@@ -48,7 +42,7 @@ export function CategoryCard({
         className="flex-row items-center px-4 py-2"
       >
         <View
-          className="w-14 h-14 rounded-2xl items-center justify-center mr-3"
+          className="w-14 h-14 rounded-full items-center justify-center mr-3"
           style={{ backgroundColor: category.background_color }}
         >
           <Text style={{ fontSize: 28 }}>{category.emoji}</Text>
