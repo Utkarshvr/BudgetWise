@@ -20,6 +20,7 @@ import { getErrorMessage } from "@/utils/errorHandler";
 export default function CategoriesScreen() {
   const { session } = useSupabaseSession();
   const {
+    categories,
     accounts,
     reservations,
     loading,
@@ -99,11 +100,42 @@ export default function CategoriesScreen() {
     setSubmitting(true);
 
     try {
+      const trimmedName = formData.name.trim();
+      
+      // Check for duplicate category name (case-insensitive) by querying the database
+      let duplicateQuery = supabase
+        .from("categories")
+        .select("id, name")
+        .eq("user_id", session.user.id);
+
+      // When editing, exclude the current category from the duplicate check
+      if (editingCategory) {
+        duplicateQuery = duplicateQuery.neq("id", editingCategory.id);
+      }
+
+      const { data: allCategories, error: duplicateError } = await duplicateQuery;
+
+      if (duplicateError) throw duplicateError;
+
+      // Check for case-insensitive duplicate
+      const duplicateCategory = allCategories?.find(
+        (cat) => cat.name.toLowerCase() === trimmedName.toLowerCase()
+      );
+
+      if (duplicateCategory) {
+        Alert.alert(
+          "Duplicate Category Name",
+          `A category with the name "${trimmedName}" already exists. Please choose a different name.`
+        );
+        setSubmitting(false);
+        return;
+      }
+
       if (editingCategory) {
         const { error } = await supabase
           .from("categories")
           .update({
-            name: formData.name.trim(),
+            name: trimmedName,
             emoji: formData.emoji,
             background_color: formData.background_color,
             // Don't update category_type when editing
@@ -114,7 +146,7 @@ export default function CategoriesScreen() {
       } else {
         const { error } = await supabase.from("categories").insert({
           user_id: session.user.id,
-          name: formData.name.trim(),
+          name: trimmedName,
           emoji: formData.emoji,
           background_color: formData.background_color,
           category_type: formData.category_type,
