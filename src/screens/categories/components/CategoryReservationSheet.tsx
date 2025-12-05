@@ -20,6 +20,8 @@ import { Account } from "@/types/account";
 import { supabase } from "@/lib/supabase";
 import { getErrorMessage } from "@/utils/errorHandler";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
+import { ACCOUNT_TYPE_ICONS, ACCOUNT_TYPE_COLORS } from "@/screens/accounts/utils";
+import { theme } from "@/constants/theme";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -62,6 +64,8 @@ export function CategoryReservationSheet({
   const [activeAction, setActiveAction] = useState<"add" | "withdraw" | null>(null);
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [selectedNewAccountId, setSelectedNewAccountId] = useState<string | null>(null);
+  const [showNewAccountSection, setShowNewAccountSection] = useState(true);
 
   useEffect(() => {
     if (visible) {
@@ -76,6 +80,8 @@ export function CategoryReservationSheet({
       setExpandedCard(null);
       setActiveAction(null);
       setAmount("");
+      setSelectedNewAccountId(null);
+      setShowNewAccountSection(false);
     }
   }, [visible]);
 
@@ -197,8 +203,81 @@ export function CategoryReservationSheet({
       setExpandedCard(reservationId);
       setActiveAction(action);
       setAmount("");
+      setShowNewAccountSection(false);
+      setSelectedNewAccountId(null);
     }
   };
+
+  const handleNewAccountClick = (accountId: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    
+    if (selectedNewAccountId === accountId && showNewAccountSection) {
+      // Collapse if clicking the same account
+      setSelectedNewAccountId(null);
+      setShowNewAccountSection(false);
+      setAmount("");
+    } else {
+      // Expand with new account
+      setSelectedNewAccountId(accountId);
+      setShowNewAccountSection(true);
+      setAmount("");
+      setExpandedCard(null);
+      setActiveAction(null);
+    }
+  };
+
+  const handleAddToNewAccount = async (accountId: string) => {
+    if (!category || !amount) {
+      Alert.alert("Error", "Please enter an amount");
+      return;
+    }
+
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      Alert.alert("Error", "Please enter a valid positive amount");
+      return;
+    }
+
+    const amountSmallest = Math.round(amountNum * 100);
+
+    // Prevent allocating more than the account's unreserved balance
+    const unreservedForAccount = accountUnreserved[accountId] || 0;
+    if (amountSmallest > unreservedForAccount) {
+      Alert.alert(
+        "Insufficient unreserved funds",
+        "You don't have enough unreserved money in this account to reserve that amount."
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase.rpc("adjust_category_reservation", {
+        p_category_id: category.id,
+        p_account_id: accountId,
+        p_amount_delta: amountSmallest,
+      });
+
+      if (error) throw error;
+
+      setAmount("");
+      setSelectedNewAccountId(null);
+      setShowNewAccountSection(false);
+      onUpdated();
+      Alert.alert("Success", "Successfully added funds to new account");
+    } catch (error: any) {
+      const errorMessage = getErrorMessage(error, "Failed to create reservation");
+      Alert.alert("Error", errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Get accounts that don't have reservations yet
+  const accountsWithoutReservations = useMemo(() => {
+    const reservedAccountIds = new Set(reservations.map((r) => r.account_id));
+    return accounts.filter((account) => !reservedAccountIds.has(account.id));
+  }, [accounts, reservations]);
 
   if (!category) return null;
 
@@ -263,10 +342,23 @@ export function CategoryReservationSheet({
                 >
                   {/* Header with Account Name and Reserved Amount */}
                   <View className="flex-row items-center justify-between mb-3">
-                    <View className="flex-1">
-                      <Text className="text-white text-lg font-semibold">
-                        {account?.name || "Unknown Account"}
-                      </Text>
+                    <View className="flex-row items-center flex-1">
+                      {account && (
+                        <View
+                          className={`${ACCOUNT_TYPE_COLORS[account.type]} w-10 h-10 rounded-xl items-center justify-center mr-3 p-1`}
+                        >
+                          <MaterialIcons
+                            name={ACCOUNT_TYPE_ICONS[account.type] as any}
+                            size={20}
+                            color={theme.colors.white}
+                          />
+                        </View>
+                      )}
+                      <View className="flex-1">
+                        <Text className="text-white text-lg font-semibold">
+                          {account?.name || "Unknown Account"}
+                        </Text>
+                      </View>
                     </View>
                     <View className="flex-row items-center">
                       <Text className="text-green-400 text-xl font-bold">
@@ -393,6 +485,122 @@ export function CategoryReservationSheet({
             <Text className="text-neutral-400 text-sm text-center mt-3">
               No reservations yet. Add funds from your accounts to start budgeting for this category.
             </Text>
+          </View>
+        )}
+
+        {/* Add Funds to New Account Section */}
+        {accountsWithoutReservations.length > 0 && (
+          <View className="mb-6">
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-neutral-300 text-sm font-semibold">
+                Add Funds to New Account
+              </Text>
+              {reservations.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => {
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                    setShowNewAccountSection(!showNewAccountSection);
+                    if (!showNewAccountSection) {
+                      setExpandedCard(null);
+                      setActiveAction(null);
+                      setSelectedNewAccountId(null);
+                      setAmount("");
+                    }
+                  }}
+                  className="flex-row items-center"
+                >
+                  <Text className="text-primary text-xs mr-1">
+                    {showNewAccountSection ? "Hide" : "Show"}
+                  </Text>
+                  <MaterialIcons
+                    name={showNewAccountSection ? "expand-less" : "expand-more"}
+                    size={20}
+                    color={colors.primary.DEFAULT}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {(!reservations.length || showNewAccountSection) && (
+              <View className="bg-neutral-800 rounded-2xl">
+                {accountsWithoutReservations.map((account, index) => {
+                  const isExpanded = selectedNewAccountId === account.id;
+                  const unreservedAmount = accountUnreserved[account.id] || 0;
+
+                  return (
+                    <View key={account.id}>
+                      <TouchableOpacity
+                        onPress={() => handleNewAccountClick(account.id)}
+                        className={`px-4 py-3 flex-row items-center justify-between ${
+                          index !== accountsWithoutReservations.length - 1
+                            ? "border-b border-neutral-700"
+                            : ""
+                        } ${isExpanded ? "bg-green-600/20" : ""}`}
+                      >
+                        <View className="flex-row items-center flex-1">
+                          <View
+                            className={`${ACCOUNT_TYPE_COLORS[account.type]} w-10 h-10 rounded-xl items-center justify-center mr-3 p-1`}
+                          >
+                            <MaterialIcons
+                              name={ACCOUNT_TYPE_ICONS[account.type] as any}
+                              size={20}
+                              color={theme.colors.white}
+                            />
+                          </View>
+                          <View className="flex-1">
+                            <Text className="text-white text-base">{account.name}</Text>
+                            <Text className="text-neutral-400 text-xs mt-1">
+                              Free to plan · {formatBalance(unreservedAmount, account.currency)}
+                            </Text>
+                          </View>
+                        </View>
+                        {isExpanded ? (
+                          <MaterialIcons name="check-circle" size={20} color="#22c55e" />
+                        ) : (
+                          <MaterialIcons name="add-circle-outline" size={20} color="#9ca3af" />
+                        )}
+                      </TouchableOpacity>
+
+                      {/* Expanded Input Section for New Account */}
+                      {isExpanded && (
+                        <View className="px-4 pb-4 border-t border-neutral-700">
+                          <Text className="text-neutral-300 text-xs mb-2 mt-3">
+                            Enter Amount
+                          </Text>
+                          <View className="flex-row gap-2">
+                            <TextInput
+                              value={amount}
+                              onChangeText={(text) => {
+                                const cleaned = text.replace(/[^\d.]/g, "");
+                                const parts = cleaned.split(".");
+                                if (parts.length > 2) {
+                                  setAmount(parts[0] + "." + parts.slice(1).join(""));
+                                } else {
+                                  setAmount(cleaned);
+                                }
+                              }}
+                              placeholder="0.00"
+                              placeholderTextColor="#6b7280"
+                              keyboardType="decimal-pad"
+                              className="flex-1 bg-neutral-700 rounded-xl px-4 py-3 text-white text-base"
+                              autoFocus
+                            />
+                            <TouchableOpacity
+                              onPress={() => handleAddToNewAccount(account.id)}
+                              disabled={submitting || !amount}
+                              className="bg-green-600 rounded-xl px-6 items-center justify-center"
+                              style={{ opacity: submitting || !amount ? 0.5 : 1 }}
+                            >
+                              <Text className="text-white text-sm font-semibold">Add</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
           </View>
         )}
 
