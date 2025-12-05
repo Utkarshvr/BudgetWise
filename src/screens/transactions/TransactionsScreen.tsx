@@ -224,7 +224,7 @@ export default function TransactionsScreen() {
             loading={loading || refreshing}
           />
 
-          <Animated.View style={animatedListStyle} className={"pb-12"}>
+          <Animated.View style={animatedListStyle} className={"pb-20"}>
             {loading && !refreshing ? (
               <View className="py-8 items-center justify-center">
                 <ActivityIndicator
