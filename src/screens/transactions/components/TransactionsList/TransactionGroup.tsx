@@ -2,7 +2,7 @@ import { Text, View } from "react-native";
 import { Transaction } from "@/types/transaction";
 import { type ThemeColors } from "@/constants/theme";
 import { type TransactionTypeMeta } from "../../utils/typeMeta";
-import { formatDateHeader } from "../../utils/formatting";
+import { formatDateHeader, formatAmount } from "../../utils/formatting";
 import { TransactionItem } from "./TransactionItem";
 
 type TransactionGroupProps = {
@@ -26,16 +26,65 @@ export function TransactionGroup({
   isLastGroup,
   onTransactionPress,
 }: TransactionGroupProps) {
+  // Calculate total income and expense for this date
+  const totalIncome = group.transactions
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalExpense = group.transactions
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // Get currency from first transaction (assuming all transactions in a group have same currency)
+  const currency = group.transactions[0]?.currency || "INR";
+
   return (
     <View>
-      {/* Date Header */}
-      <View className="px-4 py-1">
+      {/* Date Header with totals */}
+      <View
+        className="px-6 py-3 flex-row justify-between items-center"
+        style={{ backgroundColor: colors.background.subtle }}
+      >
         <Text
-          className="text-base font-bold text-left"
+          className="text-base font-bold"
           style={{ color: colors.muted.foreground }}
         >
           {formatDateHeader(group.date)}
         </Text>
+        <View className="flex-row items-center gap-8">
+          {true && (
+            <View className="items-end">
+              {/* <Text
+                className="text-xs"
+                style={{ color: colors.muted.foreground }}
+              >
+                Income
+              </Text> */}
+              <Text
+                className="text-sm font-semibold"
+                style={{ color: colors.transaction.income.badgeIcon }}
+              >
+                {formatAmount(totalIncome, currency)}
+              </Text>
+            </View>
+          )}
+          {true && (
+            <View className="items-end">
+              {/* <Text
+                className="text-xs"
+                style={{ color: colors.muted.foreground }}
+              >
+                Expense
+              </Text> */}
+              <Text
+                className="text-sm font-semibold"
+                style={{ color: colors.transaction.expense.badgeIcon }}
+              >
+                {formatAmount(totalExpense, currency)}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
       {/* Transactions for this date */}
       {group.transactions.map((transaction, index) => (
@@ -50,7 +99,7 @@ export function TransactionGroup({
         />
       ))}
       {/* Separator between date groups */}
-      {!isLastGroup && <View className="h-2" />}
+      {/* {!isLastGroup && <View className="h-2" />} */}
     </View>
   );
 }

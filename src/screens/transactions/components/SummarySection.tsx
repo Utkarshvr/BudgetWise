@@ -54,7 +54,7 @@ export function SummarySection({
   }, [filteredTransactions, loading]);
 
   return (
-    <View className="py-2 bg-background-subtle flex-row items-center justify-center mb-2">
+    <View className="py-2 bg-background-subtle flex-row items-center justify-center border-b border-b-border">
       <View className="flex-1">
         <Text
           className="text-center text-sm mb-1"
