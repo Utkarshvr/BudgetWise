@@ -7,6 +7,7 @@ export interface Category {
   emoji: string;
   background_color: string;
   category_type: CategoryType;
+  is_archived?: boolean;
   // Legacy fund fields (keeping for backward compatibility, but not used in new system)
   fund_balance?: number;
   fund_currency?: string | null;

@@ -69,15 +69,46 @@ export default function CategoriesScreen() {
 
   const handleDeleteCategory = (category: Category) => {
     Alert.alert(
-      "Delete Category",
-      `Are you sure you want to delete "${category.name}"?`,
+      "Delete or Archive Category",
+      `What would you like to do with "${category.name}"?\n\nDelete: Permanently delete the category and all transactions with this category.\n\nArchive: Hide the category from category screens, but keep it for previous transactions. You won't be able to create new transactions with this category.`,
       [
         { text: "Cancel", style: "cancel" },
+        {
+          text: "Archive",
+          style: "default",
+          onPress: async () => {
+            try {
+              // The database trigger will handle:
+              // - Returning fund_balance to account
+              // - Deleting category_reservations
+              // - Resetting fund fields
+              const { error } = await supabase
+                .from("categories")
+                .update({ is_archived: true })
+                .eq("id", category.id);
+
+              if (error) throw error;
+              handleRefresh();
+            } catch (error: any) {
+              const errorMessage = getErrorMessage(error, "Failed to archive category");
+              Alert.alert("Error", errorMessage);
+            }
+          },
+        },
         {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
             try {
+              // First delete all transactions with this category
+              const { error: transactionsError } = await supabase
+                .from("transactions")
+                .delete()
+                .eq("category_id", category.id);
+
+              if (transactionsError) throw transactionsError;
+
+              // Then delete the category
               const { error } = await supabase
                 .from("categories")
                 .delete()
@@ -103,9 +134,10 @@ export default function CategoriesScreen() {
       const trimmedName = formData.name.trim();
       
       // Check for duplicate category name (case-insensitive) by querying the database
+      // Include archived categories to check for duplicates
       let duplicateQuery = supabase
         .from("categories")
-        .select("id, name")
+        .select("id, name, is_archived")
         .eq("user_id", session.user.id);
 
       // When editing, exclude the current category from the duplicate check
@@ -122,7 +154,52 @@ export default function CategoriesScreen() {
         (cat) => cat.name.toLowerCase() === trimmedName.toLowerCase()
       );
 
-      if (duplicateCategory) {
+      // If creating a new category and an archived category with the same name exists
+      if (!editingCategory && duplicateCategory && duplicateCategory.is_archived) {
+        Alert.alert(
+          "Archived Category Found",
+          `A category named "${trimmedName}" is currently archived. Would you like to restore it and start using it again?`,
+          [
+            { text: "Cancel", style: "cancel", onPress: () => setSubmitting(false) },
+            {
+              text: "Use Different Name",
+              style: "default",
+              onPress: () => setSubmitting(false),
+            },
+            {
+              text: "Restore Archived",
+              style: "default",
+              onPress: async () => {
+                try {
+                  const { error } = await supabase
+                    .from("categories")
+                    .update({
+                      is_archived: false,
+                      emoji: formData.emoji,
+                      background_color: formData.background_color,
+                      // Update category_type in case it changed
+                      category_type: formData.category_type,
+                    })
+                    .eq("id", duplicateCategory.id);
+
+                  if (error) throw error;
+                  setFormSheetVisible(false);
+                  setEditingCategory(null);
+                  handleRefresh();
+                } catch (error: any) {
+                  const errorMessage = getErrorMessage(error, "Failed to restore category");
+                  Alert.alert("Error", errorMessage);
+                  setSubmitting(false);
+                }
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      // Check for active duplicate (non-archived)
+      if (duplicateCategory && !duplicateCategory.is_archived) {
         Alert.alert(
           "Duplicate Category Name",
           `A category with the name "${trimmedName}" already exists. Please choose a different name.`

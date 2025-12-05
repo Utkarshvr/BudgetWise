@@ -65,13 +65,14 @@ export function CategorySelectSheet({
 
     setLoading(true);
     try {
-      // Fetch categories of the appropriate type
+      // Fetch categories of the appropriate type (exclude archived)
       const categoryType = transactionType === "income" ? "income" : "expense";
       const { data: categoriesData, error: categoriesError } = await supabase
         .from("categories")
         .select("*")
         .eq("user_id", session.user.id)
         .eq("category_type", categoryType)
+        .eq("is_archived", false)
         .order("name", { ascending: true });
 
       if (categoriesError) throw categoriesError;

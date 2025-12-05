@@ -166,10 +166,12 @@ export default function TransactionFormScreen({
     if (!session?.user) return;
 
     try {
+      // Exclude archived categories from transaction forms
       const { data, error } = await supabase
         .from("categories")
         .select("*")
         .eq("user_id", session.user.id)
+        .eq("is_archived", false)
         .order("name", { ascending: true });
 
       if (error) throw error;

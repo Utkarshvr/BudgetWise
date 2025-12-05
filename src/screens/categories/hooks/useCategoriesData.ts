@@ -32,10 +32,12 @@ export function useCategoriesData(session: Session | null) {
   const fetchCategories = async () => {
     if (!session?.user) return;
     try {
+      // Fetch only non-archived categories for category screens
       const { data, error } = await supabase
         .from("categories")
         .select("*")
         .eq("user_id", session.user.id)
+        .eq("is_archived", false)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
