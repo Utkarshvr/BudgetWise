@@ -114,7 +114,7 @@ export function AccountCard({
           {/* <Text className="text-muted-foreground text-xs uppercase tracking-[0.2em]">
             Total Balance
           </Text> */}
-          <Text className="text-foreground text-3xl text-center font-extrabold mt-1">
+          <Text className="text-neutral-100 text-3xl text-center font-extrabold mt-1">
             {formatBalance(totalBalance, account.currency)}
           </Text>
         </View>
