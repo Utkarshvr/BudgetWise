@@ -13,6 +13,22 @@ CREATE INDEX IF NOT EXISTS categories_is_archived_idx ON categories(is_archived)
 UPDATE categories SET is_archived = false WHERE is_archived IS NULL;
 
 -- ============================================================================
+-- Unique constraint: (user_id, name, category_type) for non-archived categories
+-- ============================================================================
+-- This ensures that within a user's categories, the combination of (name, type)
+-- is unique for active (non-archived) categories.
+-- Archived categories can have duplicate names/types, but when restored,
+-- they will conflict if an active category with the same (name, type) exists.
+-- ============================================================================
+-- Create a partial unique index (only applies to non-archived categories)
+CREATE UNIQUE INDEX IF NOT EXISTS categories_unique_name_type_per_user_idx
+ON categories (user_id, LOWER(name), category_type)
+WHERE is_archived = false;
+
+COMMENT ON INDEX categories_unique_name_type_per_user_idx IS 
+'Ensures uniqueness of (name, category_type) combination per user for active categories only. Case-insensitive name matching.';
+
+-- ============================================================================
 -- Trigger function to handle category archiving
 -- ============================================================================
 -- When a category is archived (is_archived changes from false to true):

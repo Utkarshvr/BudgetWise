@@ -133,12 +133,13 @@ export default function CategoriesScreen() {
     try {
       const trimmedName = formData.name.trim();
       
-      // Check for duplicate category name (case-insensitive) by querying the database
+      // Check for duplicate category by (name, category_type) combination (case-insensitive name)
       // Include archived categories to check for duplicates
       let duplicateQuery = supabase
         .from("categories")
-        .select("id, name, is_archived")
-        .eq("user_id", session.user.id);
+        .select("id, name, category_type, is_archived")
+        .eq("user_id", session.user.id)
+        .eq("category_type", formData.category_type); // Check same type
 
       // When editing, exclude the current category from the duplicate check
       if (editingCategory) {
@@ -149,60 +150,37 @@ export default function CategoriesScreen() {
 
       if (duplicateError) throw duplicateError;
 
-      // Check for case-insensitive duplicate
+      // Check for case-insensitive duplicate with same category_type
       const duplicateCategory = allCategories?.find(
         (cat) => cat.name.toLowerCase() === trimmedName.toLowerCase()
       );
 
-      // If creating a new category and an archived category with the same name exists
+      // If creating a new category and an archived category with the same (name, type) exists
+      // Automatically restore it without prompting
       if (!editingCategory && duplicateCategory && duplicateCategory.is_archived) {
-        Alert.alert(
-          "Archived Category Found",
-          `A category named "${trimmedName}" is currently archived. Would you like to restore it and start using it again?`,
-          [
-            { text: "Cancel", style: "cancel", onPress: () => setSubmitting(false) },
-            {
-              text: "Use Different Name",
-              style: "default",
-              onPress: () => setSubmitting(false),
-            },
-            {
-              text: "Restore Archived",
-              style: "default",
-              onPress: async () => {
-                try {
-                  const { error } = await supabase
-                    .from("categories")
-                    .update({
-                      is_archived: false,
-                      emoji: formData.emoji,
-                      background_color: formData.background_color,
-                      // Update category_type in case it changed
-                      category_type: formData.category_type,
-                    })
-                    .eq("id", duplicateCategory.id);
+        const { error } = await supabase
+          .from("categories")
+          .update({
+            is_archived: false,
+            emoji: formData.emoji, // Update emoji to the one selected by user
+            background_color: formData.background_color,
+            // category_type should already match, but keep it for safety
+            category_type: formData.category_type,
+          })
+          .eq("id", duplicateCategory.id);
 
-                  if (error) throw error;
-                  setFormSheetVisible(false);
-                  setEditingCategory(null);
-                  handleRefresh();
-                } catch (error: any) {
-                  const errorMessage = getErrorMessage(error, "Failed to restore category");
-                  Alert.alert("Error", errorMessage);
-                  setSubmitting(false);
-                }
-              },
-            },
-          ]
-        );
+        if (error) throw error;
+        setFormSheetVisible(false);
+        setEditingCategory(null);
+        handleRefresh();
         return;
       }
 
-      // Check for active duplicate (non-archived)
+      // Check for active duplicate (non-archived) with same (name, type)
       if (duplicateCategory && !duplicateCategory.is_archived) {
         Alert.alert(
-          "Duplicate Category Name",
-          `A category with the name "${trimmedName}" already exists. Please choose a different name.`
+          "Duplicate Category",
+          `A ${formData.category_type} category with the name "${trimmedName}" already exists. Please choose a different name.`
         );
         setSubmitting(false);
         return;
