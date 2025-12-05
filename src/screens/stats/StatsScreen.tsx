@@ -268,7 +268,7 @@ export default function StatsScreen() {
             <PieChart
               data={pieData}
               radius={140}
-              textColor={colors.foreground}
+              textColor={colors.white}
               textSize={11}
               showText
               showValuesAsLabels

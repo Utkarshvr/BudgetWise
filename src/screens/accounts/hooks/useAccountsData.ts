@@ -4,6 +4,7 @@ import { Alert } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { Account, AccountFormData } from "@/types/account";
 import { Category, CategoryReservation } from "@/types/category";
+import { getErrorMessage } from "@/utils/errorHandler";
 
 export function useAccountsData(session: Session | null) {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -35,7 +36,8 @@ export function useAccountsData(session: Session | null) {
       if (error) throw error;
       setAccounts(data || []);
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to fetch accounts");
+      const errorMessage = getErrorMessage(error, "Failed to fetch accounts");
+      Alert.alert("Error", errorMessage);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -113,7 +115,8 @@ export function useAccountsData(session: Session | null) {
                 await fetchData();
                 resolve();
               } catch (error: any) {
-                Alert.alert("Error", error.message || "Failed to delete account");
+                const errorMessage = getErrorMessage(error, "Failed to delete account");
+                Alert.alert("Error", errorMessage);
                 reject(error);
               }
             },
@@ -161,7 +164,8 @@ export function useAccountsData(session: Session | null) {
 
       await fetchData();
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to save account");
+      const errorMessage = getErrorMessage(error, "Failed to save account");
+      Alert.alert("Error", errorMessage);
       throw error;
     }
   };

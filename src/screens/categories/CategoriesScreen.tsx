@@ -15,6 +15,7 @@ import { CategoriesEmptyState } from "./components/CategoriesEmptyState";
 import { CategoryList } from "./components/CategoryList";
 import { FullScreenLoader } from "./components/FullScreenLoader";
 import { getTotalReserved as getTotalReservedForAccount } from "@/screens/accounts/utils/accountHelpers";
+import { getErrorMessage } from "@/utils/errorHandler";
 
 export default function CategoriesScreen() {
   const { session } = useSupabaseSession();
@@ -84,10 +85,8 @@ export default function CategoriesScreen() {
               if (error) throw error;
               handleRefresh();
             } catch (error: any) {
-              Alert.alert(
-                "Error",
-                error.message || "Failed to delete category"
-              );
+              const errorMessage = getErrorMessage(error, "Failed to delete category");
+              Alert.alert("Error", errorMessage);
             }
           },
         },
@@ -128,7 +127,8 @@ export default function CategoriesScreen() {
       setEditingCategory(null);
       handleRefresh();
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to save category");
+      const errorMessage = getErrorMessage(error, "Failed to save category");
+      Alert.alert("Error", errorMessage);
     } finally {
       setSubmitting(false);
     }

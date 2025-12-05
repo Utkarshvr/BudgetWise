@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useSupabaseSession } from "@/hooks/useSupabaseSession";
 import { useThemeColors } from "@/constants/theme";
 import { supabase } from "@/lib/supabase";
+import { getErrorMessage } from "@/utils/errorHandler";
 
 export default function AccountSettingsScreen() {
   const colors = useThemeColors();
@@ -55,7 +56,8 @@ export default function AccountSettingsScreen() {
       ]);
     } catch (err: any) {
       setSaving(false);
-      Alert.alert("Error", err.message || "Something went wrong.");
+      const errorMessage = getErrorMessage(err, "Something went wrong.");
+      Alert.alert("Error", errorMessage);
     }
   };
 

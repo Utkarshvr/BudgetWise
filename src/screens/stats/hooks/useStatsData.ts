@@ -4,6 +4,55 @@ import { Alert } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { Transaction } from "@/types/transaction";
 import { getDateRangeForPeriod, DateRangeFilter } from "@/screens/transactions/utils/dateRange";
+import { getErrorMessage } from "@/utils/errorHandler";
+
+// 20 Income Category Colors (Darker Tones, Positive Palette)
+const INCOME_CATEGORY_COLORS = [
+  "#1E5024",
+  "#153A1A",
+  "#24692E",
+  "#2F7A36",
+  "#2B6B31",
+  "#1D5F46",
+  "#006B63",
+  "#004E47",
+  "#00564F",
+  "#1A7B74",
+  "#0E386F",
+  "#082B5A",
+  "#0F4391",
+  "#1F2A5C",
+  "#331F71",
+  "#422783",
+  "#2A3478",
+  "#1558A2",
+  "#0273A0",
+  "#005B6A",
+];
+// 20 Expense Category Colors (Darker Tones, Warmer Palette)
+const EXPENSE_CATEGORY_COLORS = [
+  "#8F1F1F",
+  "#751515",
+  "#992424",
+  "#B12C2C",
+  "#C03E1B",
+  "#8A2A0A",
+  "#B35000",
+  "#A23F00",
+  "#C46200",
+  "#D87300",
+  "#4A342F",
+  "#3E2B26",
+  "#37241E",
+  "#6E554C",
+  "#5F473F",
+  "#8B6E60",
+  "#7F1242",
+  "#6A0E36",
+  "#7E1F78",
+  "#5D1763",
+];
+
 
 export interface CategoryStat {
   categoryId: string | null;
@@ -61,7 +110,8 @@ export function useStatsData(
       if (error) throw error;
       setTransactions(data || []);
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to fetch transactions");
+      const errorMessage = getErrorMessage(error, "Failed to fetch transactions");
+      Alert.alert("Error", errorMessage);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -91,7 +141,8 @@ export function useStatsData(
 
     // Group by category and calculate totals
     const processCategoryStats = (
-      transactionList: Transaction[]
+      transactionList: Transaction[],
+      isIncome: boolean
     ): CategoryStat[] => {
       const categoryMap = new Map<
         string,
@@ -99,7 +150,6 @@ export function useStatsData(
           categoryId: string | null;
           categoryName: string;
           categoryEmoji: string;
-          categoryColor: string;
           totalAmount: number;
           currency: string;
         }
@@ -110,8 +160,6 @@ export function useStatsData(
         const categoryName =
           transaction.category?.name || "Uncategorized";
         const categoryEmoji = transaction.category?.emoji || "📦";
-        const categoryColor =
-          transaction.category?.background_color || "#64748B";
         const amount = transaction.amount;
         const currency = transaction.currency || "INR";
 
@@ -123,7 +171,6 @@ export function useStatsData(
             categoryId,
             categoryName,
             categoryEmoji,
-            categoryColor,
             totalAmount: amount,
             currency,
           });
@@ -136,16 +183,22 @@ export function useStatsData(
         0
       );
 
+      const colorPalette = isIncome ? INCOME_CATEGORY_COLORS : EXPENSE_CATEGORY_COLORS;
+
       return Array.from(categoryMap.values())
         .map((stat) => ({
           ...stat,
           percentage: total > 0 ? (stat.totalAmount / total) * 100 : 0,
         }))
-        .sort((a, b) => b.totalAmount - a.totalAmount);
+        .sort((a, b) => b.totalAmount - a.totalAmount)
+        .map((stat, index) => ({
+          ...stat,
+          categoryColor: colorPalette[index % colorPalette.length],
+        }));
     };
 
-    const incomeStats = processCategoryStats(incomeTransactions);
-    const expenseStats = processCategoryStats(expenseTransactions);
+    const incomeStats = processCategoryStats(incomeTransactions, true);
+    const expenseStats = processCategoryStats(expenseTransactions, false);
 
     const totalIncome = incomeTransactions.reduce(
       (sum, t) => sum + t.amount,

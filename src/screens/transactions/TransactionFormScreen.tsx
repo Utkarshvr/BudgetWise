@@ -26,6 +26,7 @@ import { TransactionTypeSheet } from "./components/TransactionTypeSheet";
 import { AccountSelectSheet } from "./components/AccountSelectSheet";
 import { ACCOUNT_TYPE_ICONS } from "@/screens/accounts/utils";
 import { useThemeColors } from "@/constants/theme";
+import { getErrorMessage } from "@/utils/errorHandler";
 
 type TransactionFormScreenProps = {
   initialAmount?: string;
@@ -154,7 +155,8 @@ export default function TransactionFormScreen({
       if (error) throw error;
       setAccounts(data || []);
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to fetch accounts");
+      const errorMessage = getErrorMessage(error, "Failed to fetch accounts");
+      Alert.alert("Error", errorMessage);
     } finally {
       setLoadingAccounts(false);
     }
@@ -446,10 +448,11 @@ export default function TransactionFormScreen({
         ]);
       }
     } catch (error: any) {
-      Alert.alert(
-        "Error",
-        error.message || `Failed to ${isEditing ? "update" : "add"} transaction`
+      const errorMessage = getErrorMessage(
+        error,
+        `Failed to ${isEditing ? "update" : "add"} transaction`
       );
+      Alert.alert("Error", errorMessage);
     } finally {
       setSubmitting(false);
     }

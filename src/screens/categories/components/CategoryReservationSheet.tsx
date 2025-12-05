@@ -18,6 +18,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Category, CategoryReservation } from "@/types/category";
 import { Account } from "@/types/account";
 import { supabase } from "@/lib/supabase";
+import { getErrorMessage } from "@/utils/errorHandler";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -145,7 +146,8 @@ export function CategoryReservationSheet({
         `Successfully ${action === "add" ? "added" : "withdrew"} funds`
       );
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to update reservation");
+      const errorMessage = getErrorMessage(error, "Failed to update reservation");
+      Alert.alert("Error", errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -170,7 +172,8 @@ export function CategoryReservationSheet({
               if (error) throw error;
               onUpdated();
             } catch (error: any) {
-              Alert.alert("Error", "Failed to delete reservation");
+              const errorMessage = getErrorMessage(error, "Failed to delete reservation");
+              Alert.alert("Error", errorMessage);
             }
           },
         },

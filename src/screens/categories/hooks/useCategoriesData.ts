@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { Category, CategoryReservation } from "@/types/category";
 import { Account } from "@/types/account";
 import { getReservationsForCategory, getTotalReserved } from "../utils/reservationHelpers";
+import { getErrorMessage } from "@/utils/errorHandler";
 
 export function useCategoriesData(session: Session | null) {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -40,7 +41,8 @@ export function useCategoriesData(session: Session | null) {
       if (error) throw error;
       setCategories(data || []);
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to fetch categories");
+      const errorMessage = getErrorMessage(error, "Failed to fetch categories");
+      Alert.alert("Error", errorMessage);
     } finally {
       setLoading(false);
       setRefreshing(false);

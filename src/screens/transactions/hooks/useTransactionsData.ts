@@ -4,6 +4,7 @@ import { Alert } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { Transaction } from "@/types/transaction";
 import { getDateRangeForPeriod } from "../utils/dateRange";
+import { getErrorMessage } from "@/utils/errorHandler";
 
 export function useTransactionsData(session: Session | null) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -43,7 +44,8 @@ export function useTransactionsData(session: Session | null) {
       if (error) throw error;
       setTransactions(data || []);
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to fetch transactions");
+      const errorMessage = getErrorMessage(error, "Failed to fetch transactions");
+      Alert.alert("Error", errorMessage);
     } finally {
       setLoading(false);
       setRefreshing(false);
