@@ -18,6 +18,7 @@ import { DateRangeFilter } from "@/screens/transactions/utils/dateRange";
 import { formatAmount } from "@/screens/transactions/utils/formatting";
 import { CategoryStat } from "./hooks/useStatsData";
 import { Text as SvgText } from "react-native-svg";
+import { MonthYearPickerModal } from "@/screens/transactions/components/MonthYearPickerModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -32,6 +33,7 @@ export default function StatsScreen() {
     "expense"
   );
   const [showPeriodModal, setShowPeriodModal] = useState(false);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   const { statsData, loading, refreshing, handleRefresh } = useStatsData(
     session,
@@ -139,12 +141,26 @@ export default function StatsScreen() {
                   color={colors.foreground}
                 />
               </TouchableOpacity>
-              <Text
-                className="text-lg font-semibold"
-                style={{ color: colors.foreground }}
-              >
-                {formatPeriodLabel()}
-              </Text>
+              {period === "month" ? (
+                <TouchableOpacity
+                  onPress={() => setShowMonthPicker(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    className="text-lg font-semibold"
+                    style={{ color: colors.foreground }}
+                  >
+                    {formatPeriodLabel()}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <Text
+                  className="text-lg font-semibold"
+                  style={{ color: colors.foreground }}
+                >
+                  {formatPeriodLabel()}
+                </Text>
+              )}
               <TouchableOpacity
                 onPress={handleNextPeriod}
                 className="p-2"
@@ -374,6 +390,20 @@ export default function StatsScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Month/Year Picker Modal (only shown when period is month) */}
+      {period === "month" && (
+        <MonthYearPickerModal
+          visible={showMonthPicker}
+          currentDate={referenceDate}
+          colors={colors}
+          onClose={() => setShowMonthPicker(false)}
+          onSelect={(date) => {
+            setReferenceDate(date);
+            setShowMonthPicker(false);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
