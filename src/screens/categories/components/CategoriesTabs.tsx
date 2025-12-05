@@ -15,7 +15,7 @@ export function CategoriesTabs({ activeTab, onChangeTab }: CategoriesTabsProps) 
         style={{
           backgroundColor:
             activeTab === "expense"
-              ? theme.colors.tabActive.expense
+              ? theme.colors.background.DEFAULT
               : "transparent",
         }}
       >
@@ -33,7 +33,7 @@ export function CategoriesTabs({ activeTab, onChangeTab }: CategoriesTabsProps) 
         style={{
           backgroundColor:
             activeTab === "income"
-              ? theme.colors.tabActive.income
+              ? theme.colors.background.DEFAULT
               : "transparent",
         }}
       >

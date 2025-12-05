@@ -18,8 +18,7 @@ export default function TabLayout() {
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [transactionAmount, setTransactionAmount] = useState("0.00");
   const pathname = usePathname();
-  const isSettingsTab = pathname?.includes("/settings");
-  const isStatsTab = pathname?.includes("/stats");
+  const isTransactionsTab = pathname?.includes("/transactions");
 
   return (
     <View style={{ flex: 1 }}>
@@ -96,7 +95,7 @@ export default function TabLayout() {
         />
       </Tabs>
 
-      {!isSettingsTab && !isStatsTab && (
+      {isTransactionsTab && (
         <TouchableOpacity
           style={[
             styles.fab,
