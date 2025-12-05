@@ -100,15 +100,8 @@ export default function CategoriesScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              // First delete all transactions with this category
-              const { error: transactionsError } = await supabase
-                .from("transactions")
-                .delete()
-                .eq("category_id", category.id);
-
-              if (transactionsError) throw transactionsError;
-
-              // Then delete the category
+              // The database trigger will automatically delete all transactions
+              // with this category_id when the category is deleted
               const { error } = await supabase
                 .from("categories")
                 .delete()

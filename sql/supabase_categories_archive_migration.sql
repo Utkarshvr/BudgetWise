@@ -88,3 +88,37 @@ GRANT EXECUTE ON FUNCTION handle_category_archive() TO authenticated;
 
 COMMENT ON FUNCTION handle_category_archive() IS 'Automatically handles fund balance returns and reservation cleanup when a category is archived';
 
+-- ============================================================================
+-- Trigger function to handle category deletion
+-- ============================================================================
+-- When a category is deleted:
+-- 1. Deletes all transactions with this category_id
+--    (This will trigger transaction delete triggers to revert account balances)
+-- 2. Category reservations are automatically deleted via CASCADE
+-- ============================================================================
+CREATE OR REPLACE FUNCTION handle_category_delete()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Delete all transactions with this category
+  -- This will trigger the transaction delete triggers to revert account balances
+  DELETE FROM transactions
+  WHERE category_id = OLD.id
+    AND user_id = auth.uid();
+  
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger to fire before delete on categories
+DROP TRIGGER IF EXISTS trigger_category_delete ON categories;
+CREATE TRIGGER trigger_category_delete
+  BEFORE DELETE ON categories
+  FOR EACH ROW
+  EXECUTE FUNCTION handle_category_delete();
+
+-- Grant execute permission
+REVOKE ALL ON FUNCTION handle_category_delete() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION handle_category_delete() TO authenticated;
+
+COMMENT ON FUNCTION handle_category_delete() IS 'Automatically deletes all transactions associated with a category when the category is deleted';
+
