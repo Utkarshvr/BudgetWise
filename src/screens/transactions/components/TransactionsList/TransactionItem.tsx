@@ -98,8 +98,8 @@ export function TransactionItem({
                 {accountLabel && (
                   <View className="mt-1.5">
                     <Text
-                      className="text-sm text-right"
-                      style={{ color: colors.muted.foreground }}
+                      className="text-sm text-right text-neutral-300"
+                      // style={{ color: colors.muted.foreground }}
                     >
                       {accountLabel}
                     </Text>
