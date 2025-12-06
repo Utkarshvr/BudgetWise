@@ -1,11 +1,13 @@
 import { useState, useRef } from "react";
 import { Link, router } from "expo-router";
-import { Text, View, TextInput } from "react-native";
+import { Text, View, TextInput, Alert } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { getAuthRedirectUrl } from "@/lib/auth-redirect";
+import { signInWithGoogle } from "@/lib/google-auth";
 import { AuthScaffold } from "./components/AuthScaffold";
 import { FormField } from "./components/FormField";
 import { PrimaryButton } from "./components/PrimaryButton";
+import { GoogleButton } from "./components/GoogleButton";
 
 export default function SignUpScreen() {
   const [email, setEmail] = useState("");
@@ -13,6 +15,7 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
 
@@ -31,29 +34,48 @@ export default function SignUpScreen() {
 
     setLoading(true);
     
-    // Get the correct redirect URL based on environment
-    const redirectUrl = await getAuthRedirectUrl();
-    
-    const { data, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-      },
-    });
+    try {
+      // Get the correct redirect URL based on environment
+      const redirectUrl = await getAuthRedirectUrl();
+      
+      const { data, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
+      });
 
-    if (authError) {
-      setError(authError.message);
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
+
+      // Don't auto-login, redirect to verification screen
       setLoading(false);
-      return;
+      router.replace({
+        pathname: "/(public)/verify-email",
+        params: { email },
+      });
+    } catch (err: any) {
+      console.error("Sign-up error:", err);
+      setError(err.message || "Failed to create account. Please check your network connection and try again.");
+      setLoading(false);
     }
+  };
 
-    // Don't auto-login, redirect to verification screen
-    setLoading(false);
-    router.replace({
-      pathname: "/(public)/verify-email",
-      params: { email },
-    });
+  const handleGoogleSignUp = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      // Navigation will be handled by auth state change or auth-callback screen
+    } catch (err: any) {
+      console.error("Google sign-up error:", err);
+      setError(err.message || "Failed to sign up with Google");
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -116,6 +138,20 @@ export default function SignUpScreen() {
           label={loading ? "Creating..." : "Create account"}
           loading={loading}
           onPress={handleSignUp}
+        />
+
+        <View className="flex-row items-center gap-3">
+          <View className="flex-1 border-t border-neutral-300 dark:border-neutral-700" />
+          <Text className="text-sm text-neutral-500 dark:text-neutral-400">
+            OR
+          </Text>
+          <View className="flex-1 border-t border-neutral-300 dark:border-neutral-700" />
+        </View>
+
+        <GoogleButton
+          onPress={handleGoogleSignUp}
+          loading={googleLoading}
+          disabled={loading || googleLoading}
         />
       </View>
     </AuthScaffold>

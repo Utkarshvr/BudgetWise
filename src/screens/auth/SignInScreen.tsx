@@ -1,16 +1,19 @@
 import { useState, useRef } from "react";
 import { Link, router } from "expo-router";
-import { Text, View, TextInput } from "react-native";
+import { Text, View, TextInput, Alert } from "react-native";
 import { supabase } from "@/lib/supabase";
+import { signInWithGoogle } from "@/lib/google-auth";
 import { AuthScaffold } from "./components/AuthScaffold";
 import { FormField } from "./components/FormField";
 import { PrimaryButton } from "./components/PrimaryButton";
+import { GoogleButton } from "./components/GoogleButton";
 
 export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
   const handleSignIn = async () => {
@@ -37,6 +40,19 @@ export default function SignInScreen() {
       router.replace("/(auth)/(tabs)");
     } else {
       router.replace("/(public)/complete-profile");
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      // Navigation will be handled by auth state change or auth-callback screen
+    } catch (err: any) {
+      console.error("Google sign-in error:", err);
+      setError(err.message || "Failed to sign in with Google");
+      setGoogleLoading(false);
     }
   };
 
@@ -99,6 +115,20 @@ export default function SignInScreen() {
           label={loading ? "Signing in..." : "Sign in"}
           loading={loading}
           onPress={handleSignIn}
+        />
+
+        <View className="flex-row items-center gap-3">
+          <View className="flex-1 border-t border-neutral-300 dark:border-neutral-700" />
+          <Text className="text-sm text-neutral-500 dark:text-neutral-400">
+            OR
+          </Text>
+          <View className="flex-1 border-t border-neutral-300 dark:border-neutral-700" />
+        </View>
+
+        <GoogleButton
+          onPress={handleGoogleSignIn}
+          loading={googleLoading}
+          disabled={loading || googleLoading}
         />
       </View>
     </AuthScaffold>
