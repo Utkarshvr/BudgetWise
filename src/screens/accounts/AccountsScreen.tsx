@@ -7,6 +7,8 @@ import { theme } from "@/constants/theme";
 import { useAccountsData } from "./hooks/useAccountsData";
 import { AccountFormSheet } from "./components/AccountFormSheet";
 import { AccountActionSheet } from "./components/AccountActionSheet";
+import { AccountAdjustmentSheet } from "./components/AccountAdjustmentSheet";
+import { getTotalReserved } from "./utils/accountHelpers";
 import { AccountsHeader } from "./components/AccountsHeader";
 import { AccountsSection } from "./components/AccountsSection";
 import { AccountsEmptyState } from "./components/AccountsEmptyState";
@@ -25,6 +27,7 @@ export default function AccountsScreen() {
     handleRefresh,
     handleDeleteAccount,
     handleSubmitAccount,
+    handleAdjustBalance,
   } = useAccountsData(session);
 
   const [formSheetVisible, setFormSheetVisible] = useState(false);
@@ -33,6 +36,9 @@ export default function AccountsScreen() {
   const [expandedReservations, setExpandedReservations] = useState<Record<string, boolean>>({});
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [adjustmentSheetVisible, setAdjustmentSheetVisible] = useState(false);
+  const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
+  const [adjusting, setAdjusting] = useState(false);
 
   const handleAddAccount = () => {
     setEditingAccount(null);
@@ -71,6 +77,31 @@ export default function AccountsScreen() {
       ...prev,
       [accountId]: !prev[accountId],
     }));
+  };
+
+  const handleAdjust = (account: Account) => {
+    setAdjustingAccount(account);
+    setAdjustmentSheetVisible(true);
+  };
+
+  const handleAdjustSubmit = async (newSpendable: number) => {
+    if (!adjustingAccount) return;
+    
+    setAdjusting(true);
+    try {
+      await handleAdjustBalance(adjustingAccount, newSpendable);
+      setAdjustmentSheetVisible(false);
+      setAdjustingAccount(null);
+    } catch (error) {
+      // Error is already handled in the hook
+    } finally {
+      setAdjusting(false);
+    }
+  };
+
+  const getSpendableAmount = (account: Account): number => {
+    const reservedTotal = getTotalReserved(account.id, reservations);
+    return Math.max(account.balance - reservedTotal, 0);
   };
 
   if (loading) {
@@ -142,6 +173,19 @@ export default function AccountsScreen() {
         }}
         onEdit={handleEditAccount}
         onDelete={handleDelete}
+        onAdjust={handleAdjust}
+      />
+
+      <AccountAdjustmentSheet
+        visible={adjustmentSheetVisible}
+        account={adjustingAccount}
+        spendableAmount={adjustingAccount ? getSpendableAmount(adjustingAccount) : 0}
+        onClose={() => {
+          setAdjustmentSheetVisible(false);
+          setAdjustingAccount(null);
+        }}
+        onSubmit={handleAdjustSubmit}
+        loading={adjusting}
       />
     </SafeAreaView>
   );

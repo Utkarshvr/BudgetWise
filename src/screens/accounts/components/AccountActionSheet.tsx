@@ -15,6 +15,7 @@ type AccountActionSheetProps = {
   onClose: () => void;
   onEdit: (account: Account) => void;
   onDelete: (account: Account) => void;
+  onAdjust?: (account: Account) => void;
 };
 
 export function AccountActionSheet({
@@ -23,6 +24,7 @@ export function AccountActionSheet({
   onClose,
   onEdit,
   onDelete,
+  onAdjust,
 }: AccountActionSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["40%"], []);
@@ -74,6 +76,13 @@ export function AccountActionSheet({
     }
   }, [account, onDelete, onClose]);
 
+  const handleAdjust = useCallback(() => {
+    if (account && onAdjust) {
+      onAdjust(account);
+      onClose();
+    }
+  }, [account, onAdjust, onClose]);
+
   if (!account) return null;
 
   const colors = theme.colors;
@@ -111,6 +120,26 @@ export function AccountActionSheet({
 
           {/* Action Buttons */}
           <View style={styles.actionsContainer}>
+            {onAdjust && (
+              <TouchableOpacity
+                onPress={handleAdjust}
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: colors.primary.DEFAULT },
+                ]}
+              >
+                <MaterialIcons
+                  name="tune"
+                  size={20}
+                  color="#ffffff"
+                  style={styles.actionIcon}
+                />
+                <Text style={[styles.actionText, { color: "#ffffff" }]}>
+                  Adjust amount
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               onPress={handleEdit}
               style={[

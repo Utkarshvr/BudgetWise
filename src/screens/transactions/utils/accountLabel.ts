@@ -18,6 +18,8 @@ export function getAccountLabel(transaction: Transaction): string | null {
       return fromName ? `${fromName} → Goal` : null;
     case "goal_withdraw":
       return toName ? `Goal → ${toName}` : null;
+    case "adjustment":
+      return toName ? `To: ${toName}` : null;
     default:
       return null;
   }

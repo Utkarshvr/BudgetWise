@@ -59,6 +59,12 @@ export function TransactionItem({
                   size={24}
                   color={colors.foreground}
                 />
+              ) : transaction.type === "adjustment" ? (
+                <MaterialIcons
+                  name="tune"
+                  size={24}
+                  color={colors.foreground}
+                />
               ) : transaction.type === "expense" ? (
                 <MaterialIcons
                   name="arrow-outward"
@@ -95,22 +101,42 @@ export function TransactionItem({
                 </Text>
               </View>
               <View className="items-end">
-                <Text
-                  className={`text-lg font-semibold ${typeMeta.amountColor}`}
-                >
-                  {typeMeta.amountPrefix}
-                  {formatAmount(transaction.amount, transaction.currency)}{" "}
-                  {/* <View
-                    className="w-5 h-5 rounded-full items-center justify-center"
-                    style={{ backgroundColor: typeMeta.badgeBg }}
+                {transaction.type === "adjustment" &&
+                transaction.adjusted_amount !== null ? (
+                  <Text
+                    className={`text-lg font-semibold ${
+                      transaction.adjusted_amount >= 0
+                        ? colors.transaction.income.amountClass
+                        : colors.transaction.expense.amountClass
+                    }`}
                   >
-                    <MaterialIcons
-                      name={typeMeta.icon}
-                      size={12}
-                      color={typeMeta.badgeIconColor}
-                    />
-                  </View> */}
-                </Text>
+                    {transaction.adjusted_amount >= 0 ? "+" : "-"}
+                    {formatAmount(
+                      Math.abs(transaction.adjusted_amount),
+                      transaction.currency
+                    )}
+                  </Text>
+                ) : (
+                  <Text
+                    className={`text-lg font-semibold ${typeMeta.amountColor}`}
+                  >
+                    {typeMeta.amountPrefix}
+                    {formatAmount(
+                      transaction.amount,
+                      transaction.currency
+                    )}{" "}
+                    {/* <View
+                      className="w-5 h-5 rounded-full items-center justify-center"
+                      style={{ backgroundColor: typeMeta.badgeBg }}
+                    >
+                      <MaterialIcons
+                        name={typeMeta.icon}
+                        size={12}
+                        color={typeMeta.badgeIconColor}
+                      />
+                    </View> */}
+                  </Text>
+                )}
                 {accountLabel && (
                   <View className="mt-1.5">
                     <Text

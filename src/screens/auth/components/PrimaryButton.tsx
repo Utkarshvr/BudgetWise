@@ -30,7 +30,9 @@ export function PrimaryButton({
         className="h-12 items-center justify-center rounded-2xl border border-transparent bg-transparent"
       >
         {loading ? (
-          <ActivityIndicator color={scheme === "dark" ? "#f8fafc" : "#0f172a"} />
+          <ActivityIndicator
+            color={scheme === "dark" ? "#f8fafc" : "#0f172a"}
+          />
         ) : (
           <Text className="text-base font-semibold text-neutral-900 dark:text-white">
             {label}
@@ -53,7 +55,9 @@ export function PrimaryButton({
       {loading ? (
         <ActivityIndicator color={scheme === "dark" ? "#0f172a" : "#f8fafc"} />
       ) : (
-        <Text className="text-base font-semibold text-white dark:text-neutral-900">
+        <Text
+          className={`text-base font-semibold ${disabled ? "text-neutral-400 dark:text-neutral-400" : " text-white dark:text-neutral-900"}`}
+        >
           {label}
         </Text>
       )}

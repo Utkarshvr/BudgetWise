@@ -59,6 +59,13 @@ export function buildTypeMeta(colors: ThemeColors): {
       amountColor: colors.transaction.goalWithdraw.amountClass,
       amountPrefix: "+",
     },
+    adjustment: {
+      icon: "tune",
+      badgeBg: colors.background.subtle,
+      badgeIconColor: colors.foreground,
+      amountColor: "text-foreground", // Will be overridden dynamically
+      amountPrefix: "", // Will be set dynamically based on adjusted_amount
+    },
   };
 
   return { DEFAULT_TYPE_META, TRANSACTION_TYPE_META };

@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { Account, AccountFormData } from "@/types/account";
 import { Category, CategoryReservation } from "@/types/category";
 import { getErrorMessage } from "@/utils/errorHandler";
+import { getTotalReserved } from "../utils/accountHelpers";
 
 export function useAccountsData(session: Session | null) {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -170,6 +171,63 @@ export function useAccountsData(session: Session | null) {
     }
   };
 
+  const handleAdjustBalance = async (account: Account, newSpendable: number) => {
+    if (!session?.user) return;
+
+    try {
+      const currentBalance = account.balance;
+      const reservedTotal = getTotalReserved(account.id, reservations);
+      const currentSpendable = Math.max(currentBalance - reservedTotal, 0);
+      
+      // Calculate the adjustment to spendable
+      const newSpendableInSmallestUnit = Math.round(newSpendable * 100);
+      const spendableAdjustment = newSpendableInSmallestUnit - currentSpendable;
+
+      // Validate: Can't have negative spendable
+      if (newSpendableInSmallestUnit < 0) {
+        throw new Error("Spendable balance cannot be negative");
+      }
+
+      // Calculate the actual balance adjustment
+      // If spendable increases, total balance increases by the same amount
+      // If spendable decreases, total balance decreases by the same amount
+      const adjustedAmount = spendableAdjustment;
+
+      // Validate: Adjustment amount cannot be 0
+      if (adjustedAmount === 0) {
+        throw new Error("Adjustment amount cannot be zero. No changes were made.");
+      }
+
+      // Validate: Can't subtract more than current spendable
+      if (adjustedAmount < 0 && Math.abs(adjustedAmount) > currentSpendable) {
+        const spendableDisplay = (currentSpendable / 100).toFixed(2);
+        throw new Error(
+          `Cannot subtract more than spendable amount (${spendableDisplay} ${account.currency})`
+        );
+      }
+
+      // Create adjustment transaction
+      // Note: amount is set to the absolute value for display, adjusted_amount is the actual change
+      const { error } = await supabase.from("transactions").insert({
+        user_id: session.user.id,
+        note: "Balance adjustment",
+        type: "adjustment",
+        amount: Math.abs(adjustedAmount), // Display amount (always positive)
+        adjusted_amount: adjustedAmount, // Actual change (positive or negative)
+        to_account_id: account.id,
+        currency: account.currency,
+      });
+
+      if (error) throw error;
+
+      await fetchData();
+    } catch (error: any) {
+      const errorMessage = getErrorMessage(error, "Failed to adjust balance");
+      Alert.alert("Error", errorMessage);
+      throw error;
+    }
+  };
+
   return {
     accounts,
     categories,
@@ -180,6 +238,7 @@ export function useAccountsData(session: Session | null) {
     handleRefresh,
     handleDeleteAccount,
     handleSubmitAccount,
+    handleAdjustBalance,
   };
 }
 
