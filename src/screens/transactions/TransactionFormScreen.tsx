@@ -31,7 +31,8 @@ import {
 import { TransactionTypeSheet } from "./components/TransactionTypeSheet";
 import { AccountSelectSheet } from "./components/AccountSelectSheet";
 import { CategoryFormSheet } from "@/screens/categories/components/CategoryFormSheet";
-import { ACCOUNT_TYPE_ICONS } from "@/screens/accounts/utils";
+import { WithdrawFundsSheet } from "./components/WithdrawFundsSheet";
+import { ACCOUNT_TYPE_ICONS, getTotalReserved } from "@/screens/accounts/utils";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
 import { getErrorMessage } from "@/utils/errorHandler";
 
@@ -68,6 +69,12 @@ export default function TransactionFormScreen({
   const [showCategoryFormSheet, setShowCategoryFormSheet] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [submittingCategory, setSubmittingCategory] = useState(false);
+  const [showWithdrawSheet, setShowWithdrawSheet] = useState(false);
+  const [pendingTransactionData, setPendingTransactionData] = useState<{
+    amountInSmallestUnit: number;
+    currency: string;
+    spendableBalance: number;
+  } | null>(null);
 
   // Initialize form data based on whether we're editing or adding
   const getInitialFormData = (): TransactionFormData => {
@@ -444,25 +451,78 @@ export default function TransactionFormScreen({
     if (!validate()) return;
     if (!session?.user) return;
 
+    // Convert amount to smallest currency unit (paise/cents)
+    const amountInSmallestUnit = Math.round(
+      parseFloat(formData.amount) * 100
+    );
+
+    // Get currency from the account
+    let currency = transaction?.currency || "INR"; // Use existing currency when editing
+    if (formData.type === "expense" && formData.from_account_id) {
+      const account = accounts.find((a) => a.id === formData.from_account_id);
+      currency = account?.currency || currency;
+    } else if (formData.type === "income" && formData.to_account_id) {
+      const account = accounts.find((a) => a.id === formData.to_account_id);
+      currency = account?.currency || currency;
+    } else if (formData.type === "transfer" && formData.from_account_id) {
+      const account = accounts.find((a) => a.id === formData.from_account_id);
+      currency = account?.currency || currency;
+    }
+
+    // Check balance for expense transactions (only for new transactions, not editing)
+    if (!isEditing && formData.type === "expense" && formData.from_account_id) {
+      const account = accounts.find((a) => a.id === formData.from_account_id);
+      if (account) {
+        const reservedTotal = getTotalReserved(account.id, reservations);
+        const spendable = Math.max(account.balance - reservedTotal, 0);
+        const totalBalance = account.balance;
+
+        // First check: If transaction amount exceeds total account balance, show error
+        if (amountInSmallestUnit > totalBalance) {
+          Alert.alert(
+            "Insufficient Balance",
+            `Transaction amount (${(amountInSmallestUnit / 100).toFixed(2)} ${currency}) exceeds the total account balance (${(totalBalance / 100).toFixed(2)} ${currency}). Please use a different account or reduce the transaction amount.`
+          );
+          return;
+        }
+
+        // Second check: If transaction amount exceeds spendable balance, prompt user to withdraw funds
+        if (amountInSmallestUnit > spendable) {
+          // Check if account has any reserved funds to withdraw
+          const hasReservations = reservations.some(
+            (r) => r.account_id === account.id && r.reserved_amount > 0
+          );
+
+          if (hasReservations) {
+            // Show withdraw funds sheet
+            setPendingTransactionData({
+              amountInSmallestUnit,
+              currency,
+              spendableBalance: spendable,
+            });
+            setShowWithdrawSheet(true);
+            return;
+          } else {
+            // No reservations to withdraw, show error
+            Alert.alert(
+              "Insufficient Funds",
+              `You don't have enough spendable balance in this account. Available: ${(spendable / 100).toFixed(2)} ${currency}`
+            );
+            return;
+          }
+        }
+      }
+    }
+
+    // Proceed with transaction submission
+    await submitTransaction(amountInSmallestUnit, currency);
+  };
+
+  const submitTransaction = async (amountInSmallestUnit: number, currency: string) => {
+    if (!session?.user) return;
+
     setSubmitting(true);
     try {
-      // Convert amount to smallest currency unit (paise/cents)
-      const amountInSmallestUnit = Math.round(
-        parseFloat(formData.amount) * 100
-      );
-
-      // Get currency from the account
-      let currency = transaction?.currency || "INR"; // Use existing currency when editing
-      if (formData.type === "expense" && formData.from_account_id) {
-        const account = accounts.find((a) => a.id === formData.from_account_id);
-        currency = account?.currency || currency;
-      } else if (formData.type === "income" && formData.to_account_id) {
-        const account = accounts.find((a) => a.id === formData.to_account_id);
-        currency = account?.currency || currency;
-      } else if (formData.type === "transfer" && formData.from_account_id) {
-        const account = accounts.find((a) => a.id === formData.from_account_id);
-        currency = account?.currency || currency;
-      }
 
       if (isEditing && transaction) {
         // UPDATE MODE: Update existing transaction
@@ -630,6 +690,23 @@ export default function TransactionFormScreen({
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleWithdrawComplete = async (totalWithdrawn: number) => {
+    if (!pendingTransactionData) return;
+
+    // Refresh reservations to get updated balances
+    await fetchReservations();
+
+    // Now submit the transaction
+    await submitTransaction(
+      pendingTransactionData.amountInSmallestUnit,
+      pendingTransactionData.currency
+    );
+
+    // Reset state
+    setPendingTransactionData(null);
+    setShowWithdrawSheet(false);
   };
 
   const handleTypeChange = (type: TransactionType) => {
@@ -1149,6 +1226,23 @@ export default function TransactionFormScreen({
         onSubmit={handleCreateCategory}
         loading={submittingCategory}
       />
+
+      {/* Withdraw Funds Sheet */}
+      {formData.from_account_id && (
+        <WithdrawFundsSheet
+          visible={showWithdrawSheet}
+          account={accounts.find((a) => a.id === formData.from_account_id) || null}
+          categories={categories}
+          reservations={reservations}
+          requiredAmount={pendingTransactionData?.amountInSmallestUnit || 0}
+          spendableBalance={pendingTransactionData?.spendableBalance || 0}
+          onClose={() => {
+            setShowWithdrawSheet(false);
+            setPendingTransactionData(null);
+          }}
+          onWithdrawComplete={handleWithdrawComplete}
+        />
+      )}
     </>
   );
 }
