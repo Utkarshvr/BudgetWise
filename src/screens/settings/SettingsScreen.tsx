@@ -33,8 +33,27 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = async () => {
-    setShowLogoutConfirm(false);
-    await supabase.auth.signOut();
+    try {
+      setShowLogoutConfirm(false);
+      console.log('🚪 [LOGOUT] Starting logout process...');
+      
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('🚪 [LOGOUT] Sign out error:', error);
+        // Still try to navigate even if there's an error
+      } else {
+        console.log('🚪 [LOGOUT] Sign out successful');
+      }
+      
+      // Explicitly navigate to sign-in screen after logout
+      // This ensures navigation happens even if auth state change is delayed on Android
+      router.replace("/(public)/sign-in");
+    } catch (err) {
+      console.error('🚪 [LOGOUT] Unexpected error during logout:', err);
+      // Still navigate to sign-in screen
+      router.replace("/(public)/sign-in");
+    }
   };
 
   return (

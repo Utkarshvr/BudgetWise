@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, router } from "expo-router";
 import { Text, View, TextInput, Alert } from "react-native";
 import { supabase } from "@/lib/supabase";
@@ -15,6 +15,58 @@ export default function SignInScreen() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
+
+  // Listen for auth state changes to reset loading state
+  useEffect(() => {
+    let isMounted = true;
+    let subscription: any;
+    let timeoutId: any;
+
+    // If Google loading is active, listen for auth completion
+    if (googleLoading) {
+      // Check current session first (in case auth completed before listener was set up)
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!isMounted) return;
+        if (session) {
+          console.log('🔐 [SIGN IN] Session already exists, resetting Google loading');
+          setGoogleLoading(false);
+          return;
+        }
+      });
+
+      // Set up listener for future auth state changes
+      const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (!isMounted) return;
+        
+        // Reset loading when user successfully signs in
+        if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          console.log('🔐 [SIGN IN] Auth state changed, resetting Google loading');
+          setGoogleLoading(false);
+          if (timeoutId) clearTimeout(timeoutId);
+        }
+      });
+
+      subscription = authSubscription;
+
+      // Safety timeout: reset loading after 30 seconds if nothing happens
+      timeoutId = setTimeout(() => {
+        if (isMounted) {
+          console.warn('🔐 [SIGN IN] Google auth timeout, resetting loading state');
+          setGoogleLoading(false);
+        }
+      }, 30000);
+    }
+
+    return () => {
+      isMounted = false;
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [googleLoading]);
 
   const handleSignIn = async () => {
     setError(null);
