@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ScrollView, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSupabaseSession } from "@/hooks";
@@ -104,6 +104,19 @@ export default function AccountsScreen() {
     return Math.max(account.balance - reservedTotal, 0);
   };
 
+  // Calculate total balance excluding credit cards
+  const totalBalance = useMemo(() => {
+    return accounts
+      .filter(account => account.type !== "credit_card")
+      .reduce((sum, account) => sum + account.balance, 0);
+  }, [accounts]);
+
+  // Get primary currency (use first non-credit-card account's currency, or default to INR)
+  const primaryCurrency = useMemo(() => {
+    const nonCreditCardAccount = accounts.find(acc => acc.type !== "credit_card");
+    return nonCreditCardAccount?.currency || "INR";
+  }, [accounts]);
+
   if (loading) {
     return <FullScreenLoader />;
   }
@@ -120,7 +133,7 @@ export default function AccountsScreen() {
           />
         }
       >
-        <AccountsHeader count={accounts.length} />
+        <AccountsHeader totalBalance={totalBalance} currency={primaryCurrency} />
 
         <AccountsSection
           title="Bank Accounts"
