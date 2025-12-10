@@ -1,11 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, router } from "expo-router";
 import { Text, View, TextInput, Alert } from "react-native";
-import { supabase } from "@/lib/supabase";
-import { signInWithGoogle } from "@/lib/google-auth";
+import { supabase, signInWithGoogle } from "@/lib";
 import { AuthScaffold } from "./components/AuthScaffold";
-import { FormField } from "./components/FormField";
-import { PrimaryButton } from "./components/PrimaryButton";
+import { FormField, PrimaryButton } from "@/components/ui";
 import { GoogleButton } from "./components/GoogleButton";
 
 export default function SignInScreen() {

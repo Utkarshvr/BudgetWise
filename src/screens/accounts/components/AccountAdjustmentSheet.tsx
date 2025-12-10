@@ -7,7 +7,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Account } from "@/types/account";
-import { PrimaryButton } from "@/screens/auth/components/PrimaryButton";
+import { PrimaryButton } from "@/components/ui";
 import { formatBalance } from "../utils/formatting";
 
 type AccountAdjustmentSheetProps = {

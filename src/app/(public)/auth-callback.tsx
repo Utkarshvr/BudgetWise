@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { ActivityIndicator, View, Text } from "react-native";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib";
 
 export default function AuthCallbackScreen() {
   const [error, setError] = useState<string | null>(null);

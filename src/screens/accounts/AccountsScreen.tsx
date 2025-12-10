@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ScrollView, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useSupabaseSession } from "@/hooks/useSupabaseSession";
+import { useSupabaseSession } from "@/hooks";
 import { Account, AccountFormData } from "@/types/account";
 import { theme } from "@/constants/theme";
 import { useAccountsData } from "./hooks/useAccountsData";
@@ -13,7 +13,7 @@ import { AccountsHeader } from "./components/AccountsHeader";
 import { AccountsSection } from "./components/AccountsSection";
 import { AccountsEmptyState } from "./components/AccountsEmptyState";
 import { AddAccountCard } from "./components/AddAccountCard";
-import { FullScreenLoader } from "./components/FullScreenLoader";
+import { FullScreenLoader } from "@/components/ui";
 
 export default function AccountsScreen() {
   const { session } = useSupabaseSession();

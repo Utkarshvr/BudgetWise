@@ -2,10 +2,10 @@ import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useSupabaseSession } from "@/hooks/useSupabaseSession";
+import { useSupabaseSession } from "@/hooks";
 import { useThemeColors } from "@/constants/theme";
-import { supabase } from "@/lib/supabase";
-import { getErrorMessage } from "@/utils/errorHandler";
+import { supabase } from "@/lib";
+import { getErrorMessage } from "@/utils";
 
 export default function AccountSettingsScreen() {
   const colors = useThemeColors();

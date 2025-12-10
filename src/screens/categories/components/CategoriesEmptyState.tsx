@@ -1,7 +1,7 @@
 import { Text, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { theme } from "@/constants/theme";
-import { PrimaryButton } from "@/screens/auth/components/PrimaryButton";
+import { PrimaryButton } from "@/components/ui";
 
 type CategoriesEmptyStateProps = {
   activeTab: "income" | "expense";

@@ -6,6 +6,10 @@ type FormFieldProps = TextInputProps & {
   error?: string | null;
 };
 
+/**
+ * Form field component with label and error message support
+ * Forwards ref to underlying TextInput for focus management
+ */
 export const FormField = forwardRef<TextInput, FormFieldProps>(
   ({ label, error, className = "", ...rest }, ref) => {
     return (
@@ -30,5 +34,4 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(
 );
 
 FormField.displayName = "FormField";
-
 

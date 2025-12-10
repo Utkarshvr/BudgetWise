@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Stack } from "expo-router";
 import * as Linking from "expo-linking";
-import { processAuthCallback } from "@/lib/auth-callback-handler";
+import { processAuthCallback } from "@/lib";
 import "../global.css";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";

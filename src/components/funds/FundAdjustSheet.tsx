@@ -7,8 +7,8 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { Category } from "@/types/category";
 import { Account } from "@/types/account";
-import { PrimaryButton } from "@/screens/auth/components/PrimaryButton";
-import { adjustCategoryFundBalance } from "@/lib/categoryFunds";
+import { PrimaryButton } from "@/components/ui";
+import { adjustCategoryFundBalance } from "@/lib";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   INR: "₹",

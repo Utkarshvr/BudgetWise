@@ -2,10 +2,9 @@ import { useState } from "react";
 import { Link } from "expo-router";
 import { Text, View } from "react-native";
 import * as Linking from "expo-linking";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib";
 import { AuthScaffold } from "./components/AuthScaffold";
-import { FormField } from "./components/FormField";
-import { PrimaryButton } from "./components/PrimaryButton";
+import { FormField, PrimaryButton } from "@/components/ui";
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");

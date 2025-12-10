@@ -17,8 +17,8 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { Category, CategoryReservation } from "@/types/category";
 import { Account } from "@/types/account";
-import { supabase } from "@/lib/supabase";
-import { getErrorMessage } from "@/utils/errorHandler";
+import { supabase } from "@/lib";
+import { getErrorMessage } from "@/utils";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
 import { ACCOUNT_TYPE_ICONS, ACCOUNT_TYPE_COLORS } from "@/screens/accounts/utils";
 import { theme } from "@/constants/theme";

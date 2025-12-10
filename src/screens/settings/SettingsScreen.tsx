@@ -10,9 +10,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useSupabaseSession } from "@/hooks/useSupabaseSession";
+import { useSupabaseSession } from "@/hooks";
 import { useThemeColors } from "@/constants/theme";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib";
 
 export default function SettingsScreen() {
   const colors = useThemeColors();

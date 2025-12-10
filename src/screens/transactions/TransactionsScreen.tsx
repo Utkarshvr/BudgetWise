@@ -19,7 +19,7 @@ import Animated, {
   withDelay,
   runOnJS,
 } from "react-native-reanimated";
-import { useSupabaseSession } from "@/hooks/useSupabaseSession";
+import { useSupabaseSession } from "@/hooks";
 import { useThemeColors } from "@/constants/theme";
 import { useTransactionsData } from "./hooks/useTransactionsData";
 import { buildTypeMeta } from "./utils/typeMeta";
@@ -29,7 +29,7 @@ import { TransactionsList } from "./components/TransactionsList";
 import { EmptyState } from "./components/EmptyState";
 import { TransactionActionSheet } from "./components/TransactionActionSheet";
 import { Transaction } from "@/types/transaction";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib";
 import TransactionFormScreen from "./TransactionFormScreen";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");

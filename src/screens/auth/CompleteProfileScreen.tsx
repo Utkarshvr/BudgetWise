@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { Text, View } from "react-native";
-import { supabase } from "@/lib/supabase";
-import { useSupabaseSession } from "@/hooks/useSupabaseSession";
+import { supabase } from "@/lib";
+import { useSupabaseSession } from "@/hooks";
 import { AuthScaffold } from "./components/AuthScaffold";
-import { FormField } from "./components/FormField";
-import { PrimaryButton } from "./components/PrimaryButton";
+import { FormField, PrimaryButton } from "@/components/ui";
 
 export default function CompleteProfileScreen() {
   const { session, isLoading } = useSupabaseSession();

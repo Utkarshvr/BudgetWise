@@ -13,6 +13,10 @@ type PrimaryButtonProps = {
   variant?: "solid" | "ghost";
 };
 
+/**
+ * Primary button component with loading and disabled states
+ * Supports solid and ghost variants with theme-aware styling
+ */
 export function PrimaryButton({
   label,
   onPress,
@@ -56,7 +60,11 @@ export function PrimaryButton({
         <ActivityIndicator color={scheme === "dark" ? "#0f172a" : "#f8fafc"} />
       ) : (
         <Text
-          className={`text-base font-semibold ${disabled ? "text-neutral-400 dark:text-neutral-400" : " text-white dark:text-neutral-900"}`}
+          className={`text-base font-semibold ${
+            disabled
+              ? "text-neutral-400 dark:text-neutral-400"
+              : " text-white dark:text-neutral-900"
+          }`}
         >
           {label}
         </Text>
@@ -64,3 +72,4 @@ export function PrimaryButton({
     </Pressable>
   );
 }
+

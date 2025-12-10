@@ -7,8 +7,8 @@ import {
 } from "@gorhom/bottom-sheet";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Category, CategoryReservation } from "@/types/category";
-import { supabase } from "@/lib/supabase";
-import { useSupabaseSession } from "@/hooks/useSupabaseSession";
+import { supabase } from "@/lib";
+import { useSupabaseSession } from "@/hooks";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
 
 type CategorySelectSheetProps = {

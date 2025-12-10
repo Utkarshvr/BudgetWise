@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { PieChart } from "react-native-gifted-charts";
-import { useSupabaseSession } from "@/hooks/useSupabaseSession";
+import { useSupabaseSession } from "@/hooks";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
 import { useStatsData } from "./hooks/useStatsData";
 import { DateRangeFilter } from "@/screens/transactions/utils/dateRange";

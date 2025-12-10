@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { Alert, RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { supabase } from "@/lib/supabase";
-import { useSupabaseSession } from "@/hooks/useSupabaseSession";
+import { supabase } from "@/lib";
+import { useSupabaseSession } from "@/hooks";
 import { Category, CategoryFormData } from "@/types/category";
 import { theme } from "@/constants/theme";
 import { useCategoriesData } from "./hooks/useCategoriesData";
@@ -13,9 +13,9 @@ import { CategoriesHeader } from "./components/CategoriesHeader";
 import { CategoriesTabs } from "./components/CategoriesTabs";
 import { CategoriesEmptyState } from "./components/CategoriesEmptyState";
 import { CategoryList } from "./components/CategoryList";
-import { FullScreenLoader } from "./components/FullScreenLoader";
+import { FullScreenLoader } from "@/components/ui";
 import { getTotalReserved as getTotalReservedForAccount } from "@/screens/accounts/utils/accountHelpers";
-import { getErrorMessage } from "@/utils/errorHandler";
+import { getErrorMessage } from "@/utils";
 
 export default function CategoriesScreen() {
   const { session } = useSupabaseSession();

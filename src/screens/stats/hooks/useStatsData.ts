@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Session } from "@supabase/supabase-js";
 import { Alert } from "react-native";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib";
 import { Transaction } from "@/types/transaction";
 import {
   getDateRangeForPeriod,
   DateRangeFilter,
 } from "@/screens/transactions/utils/dateRange";
-import { getErrorMessage } from "@/utils/errorHandler";
+import { getErrorMessage } from "@/utils";
 
 // const INCOME_CATEGORY_COLORS = [
 //   "#1E5024",

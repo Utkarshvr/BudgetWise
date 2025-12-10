@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { Session } from "@supabase/supabase-js";
 import { Alert } from "react-native";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib";
 import { Account, AccountFormData } from "@/types/account";
 import { Category, CategoryReservation } from "@/types/category";
-import { getErrorMessage } from "@/utils/errorHandler";
+import { getErrorMessage } from "@/utils";
 import { getTotalReserved } from "../utils/accountHelpers";
 
 export function useAccountsData(session: Session | null) {

@@ -15,8 +15,8 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
-import { supabase } from "@/lib/supabase";
-import { useSupabaseSession } from "@/hooks/useSupabaseSession";
+import { supabase } from "@/lib";
+import { useSupabaseSession } from "@/hooks";
 import { Account } from "@/types/account";
 import {
   Transaction,
@@ -34,7 +34,7 @@ import { CategoryFormSheet } from "@/screens/categories/components/CategoryFormS
 import { WithdrawFundsSheet } from "./components/WithdrawFundsSheet";
 import { ACCOUNT_TYPE_ICONS, getTotalReserved } from "@/screens/accounts/utils";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
-import { getErrorMessage } from "@/utils/errorHandler";
+import { getErrorMessage } from "@/utils";
 
 type TransactionFormScreenProps = {
   initialAmount?: string;

@@ -1,6 +1,6 @@
 import { Redirect, Stack } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
-import { useSupabaseSession } from "@/hooks/useSupabaseSession";
+import { useSupabaseSession } from "@/hooks";
 
 export default function AuthLayout() {
   const { session, isLoading } = useSupabaseSession();

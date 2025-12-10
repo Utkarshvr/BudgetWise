@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Text, View, Linking, Alert } from "react-native";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib";
 import { AuthScaffold } from "./components/AuthScaffold";
-import { PrimaryButton } from "./components/PrimaryButton";
+import { PrimaryButton } from "@/components/ui";
 
 export default function VerifyEmailScreen() {
   const params = useLocalSearchParams<{ email?: string }>();

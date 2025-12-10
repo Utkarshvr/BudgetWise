@@ -15,7 +15,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Category, CategoryFormData } from "@/types/category";
-import { PrimaryButton } from "@/screens/auth/components/PrimaryButton";
+import { PrimaryButton } from "@/components/ui";
 import { EMOJI_CATEGORIES } from "@/constants/emojis";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
 

@@ -7,7 +7,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Account, AccountFormData, AccountType } from "@/types/account";
-import { PrimaryButton } from "@/screens/auth/components/PrimaryButton";
+import { PrimaryButton } from "@/components/ui";
 
 type AccountFormSheetProps = {
   visible: boolean;

@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { Session } from "@supabase/supabase-js";
 import { Alert } from "react-native";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib";
 import { Category, CategoryReservation } from "@/types/category";
 import { Account } from "@/types/account";
 import { getReservationsForCategory, getTotalReserved } from "../utils/reservationHelpers";
-import { getErrorMessage } from "@/utils/errorHandler";
+import { getErrorMessage } from "@/utils";
 
 export function useCategoriesData(session: Session | null) {
   const [categories, setCategories] = useState<Category[]>([]);
