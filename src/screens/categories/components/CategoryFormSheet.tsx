@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Modal,
 } from "react-native";
 import {
   BottomSheetModal,
@@ -12,7 +11,7 @@ import {
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
 import { MaterialIcons } from "@expo/vector-icons";
-import { EmojiPicker } from "@/components/emoji/EmojiPicker";
+import EmojiPicker from "rn-emoji-keyboard";
 import { Category, CategoryFormData } from "@/types/category";
 import { PrimaryButton } from "@/components/ui";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
@@ -237,34 +236,15 @@ export function CategoryFormSheet({
         </BottomSheetScrollView>
       </BottomSheetModal>
 
-      <Modal
-        visible={showEmojiMenu}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowEmojiMenu(false)}
-      >
-        <View className="flex-1 bg-black/60">
-          <View className="flex-1 bg-neutral-900 mt-auto">
-            <View className="flex-row items-center justify-between px-4 py-3 border-b border-neutral-800">
-              <Text className="text-white text-lg font-semibold">
-                Choose Emoji
-              </Text>
-              <TouchableOpacity onPress={() => setShowEmojiMenu(false)}>
-                <MaterialIcons name="close" size={24} color="#9ca3af" />
-              </TouchableOpacity>
-            </View>
-            <View style={{ flex: 1 }}>
-              <EmojiPicker
-                onEmojiSelected={(emoji: string) => {
-                  setFormData({ ...formData, emoji });
-                  setShowEmojiMenu(false);
-                }}
-                theme="#22c55e"
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <EmojiPicker
+        open={showEmojiMenu}
+        onClose={() => setShowEmojiMenu(false)}
+        onEmojiSelected={(emoji) => {
+          setFormData({ ...formData, emoji: emoji.emoji });
+          setShowEmojiMenu(false);
+        }}
+        defaultHeight={600}
+      />
     </>
   );
 }
