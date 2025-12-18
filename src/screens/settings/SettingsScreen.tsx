@@ -128,7 +128,7 @@ export default function SettingsScreen() {
             ) : null}
 
             {/* Upgrade pill – visually similar to reference, non-blocking */}
-            <TouchableOpacity
+            {/* <TouchableOpacity
               activeOpacity={0.9}
               className="mt-4 px-6 py-3 rounded-full flex-row items-center gap-2"
               style={{ backgroundColor: colors.primary.DEFAULT }}
@@ -144,7 +144,7 @@ export default function SettingsScreen() {
                 size={18}
                 color={colors.primary.foreground}
               />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           {/* Settings section */}
@@ -357,7 +357,7 @@ export default function SettingsScreen() {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               activeOpacity={0.8}
               className="w-full rounded-full flex-row items-center justify-center gap-2 px-4 py-3"
               style={{ backgroundColor: colors.destructive.DEFAULT }}
@@ -373,11 +373,11 @@ export default function SettingsScreen() {
               >
                 Delete Account
               </Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           {/* Terms & Service */}
-          <View className="px-2">
+          <View>
             <Text
               className="text-xs text-center"
               style={{ color: colors.muted.foreground }}
