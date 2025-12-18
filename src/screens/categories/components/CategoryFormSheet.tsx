@@ -4,9 +4,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Dimensions,
   Modal,
-  ScrollView,
 } from "react-native";
 import {
   BottomSheetModal,
@@ -14,9 +12,9 @@ import {
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
 import { MaterialIcons } from "@expo/vector-icons";
+import { EmojiPicker } from "@/components/emoji/EmojiPicker";
 import { Category, CategoryFormData } from "@/types/category";
 import { PrimaryButton } from "@/components/ui";
-import { EMOJI_CATEGORIES } from "@/constants/emojis";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
 
 type CategoryFormSheetProps = {
@@ -55,11 +53,6 @@ export function CategoryFormSheet({
     Partial<Record<keyof CategoryFormData, string>>
   >({});
   const [showEmojiMenu, setShowEmojiMenu] = useState(false);
-  const [selectedEmojiCategory, setSelectedEmojiCategory] =
-    useState<keyof typeof EMOJI_CATEGORIES>("common");
-
-  const screenWidth = Dimensions.get("window").width;
-  const emojiSize = (screenWidth - 64) / 8;
 
   useEffect(() => {
     if (visible) {
@@ -250,8 +243,8 @@ export function CategoryFormSheet({
         transparent
         onRequestClose={() => setShowEmojiMenu(false)}
       >
-        <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-neutral-900 rounded-t-3xl max-h-[70%]">
+        <View className="flex-1 bg-black/60">
+          <View className="flex-1 bg-neutral-900 mt-auto">
             <View className="flex-row items-center justify-between px-4 py-3 border-b border-neutral-800">
               <Text className="text-white text-lg font-semibold">
                 Choose Emoji
@@ -260,56 +253,15 @@ export function CategoryFormSheet({
                 <MaterialIcons name="close" size={24} color="#9ca3af" />
               </TouchableOpacity>
             </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              className="px-4 py-3"
-            >
-              {Object.entries(EMOJI_CATEGORIES).map(([key, meta]) => (
-                <TouchableOpacity
-                  key={key}
-                  onPress={() =>
-                    setSelectedEmojiCategory(
-                      key as keyof typeof EMOJI_CATEGORIES
-                    )
-                  }
-                  className={`px-4 py-2 rounded-full mr-2 ${
-                    selectedEmojiCategory === key
-                      ? "bg-green-600/30"
-                      : "bg-neutral-800"
-                  }`}
-                >
-                  <Text className="text-white text-sm font-medium">
-                    {meta.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <ScrollView contentContainerStyle={{ paddingHorizontal: 16 }}>
-              <View className="flex-row flex-wrap">
-                {EMOJI_CATEGORIES[selectedEmojiCategory].emojis.map((emoji) => (
-                  <TouchableOpacity
-                    key={emoji}
-                    onPress={() => {
-                      setFormData({ ...formData, emoji });
-                      setShowEmojiMenu(false);
-                    }}
-                    style={{
-                      width: emojiSize,
-                      height: emojiSize,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderRadius: 12,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <Text style={{ fontSize: 28 }}>{emoji}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
+            <View style={{ flex: 1 }}>
+              <EmojiPicker
+                onEmojiSelected={(emoji: string) => {
+                  setFormData({ ...formData, emoji });
+                  setShowEmojiMenu(false);
+                }}
+                theme="#22c55e"
+              />
+            </View>
           </View>
         </View>
       </Modal>
