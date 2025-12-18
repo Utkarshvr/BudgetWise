@@ -1,10 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
@@ -37,10 +32,10 @@ export function CategoryFormSheet({
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["90%"], []);
 
-  const colors = useThemeColors()
+  const colors = useThemeColors();
   const defaultBgColor = getCategoryBackgroundColor(colors);
   const colorScheme = useColorScheme();
-  
+
   // Create dynamic theme for emoji picker based on app theme
   const emojiPickerTheme = useMemo(() => {
     const isDark = colorScheme === "dark";
@@ -178,7 +173,11 @@ export function CategoryFormSheet({
 
   const handleSubmit = async () => {
     if (!validate()) return;
-    await onSubmit({ ...formData, background_color: defaultBgColor, name: nameValueRef.current });
+    await onSubmit({
+      ...formData,
+      background_color: defaultBgColor,
+      name: nameValueRef.current,
+    });
   };
 
   return (
@@ -292,7 +291,8 @@ export function CategoryFormSheet({
           setShowEmojiMenu(false);
         }}
         theme={emojiPickerTheme}
-        defaultHeight={600}
+        enableSearchBar
+        defaultHeight={450}
       />
     </>
   );
