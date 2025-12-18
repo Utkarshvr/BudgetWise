@@ -12,6 +12,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import { MaterialIcons } from "@expo/vector-icons";
 import EmojiPicker from "rn-emoji-keyboard";
+import { useColorScheme } from "react-native";
 import { Category, CategoryFormData } from "@/types/category";
 import { PrimaryButton } from "@/components/ui";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
@@ -38,6 +39,53 @@ export function CategoryFormSheet({
 
   const colors = useThemeColors()
   const defaultBgColor = getCategoryBackgroundColor(colors);
+  const colorScheme = useColorScheme();
+  
+  // Create dynamic theme for emoji picker based on app theme
+  const emojiPickerTheme = useMemo(() => {
+    const isDark = colorScheme === "dark";
+    if (isDark) {
+      return {
+        backdrop: "#00000088",
+        knob: colors.primary.DEFAULT,
+        container: colors.background.DEFAULT,
+        header: colors.foreground,
+        skinTonesContainer: colors.background.subtle,
+        category: {
+          icon: colors.primary.DEFAULT,
+          iconActive: colors.foreground,
+          container: colors.background.subtle,
+          containerActive: colors.primary.DEFAULT,
+        },
+        search: {
+          text: colors.foreground,
+          placeholder: colors.muted.foreground,
+          icon: colors.muted.foreground,
+          background: colors.background.subtle,
+        },
+      };
+    } else {
+      return {
+        backdrop: "#00000055",
+        knob: "#ffffff",
+        container: colors.card.DEFAULT,
+        header: "#00000099",
+        skinTonesContainer: colors.muted.DEFAULT,
+        category: {
+          icon: "#000000",
+          iconActive: colors.foreground,
+          container: colors.muted.DEFAULT,
+          containerActive: colors.primary.DEFAULT,
+        },
+        search: {
+          text: "#000000cc",
+          placeholder: "#00000055",
+          icon: "#00000055",
+          background: "#00000011",
+        },
+      };
+    }
+  }, [colorScheme, colors]);
 
   const [formData, setFormData] = useState<CategoryFormData>({
     name: "",
@@ -243,6 +291,7 @@ export function CategoryFormSheet({
           setFormData({ ...formData, emoji: emoji.emoji });
           setShowEmojiMenu(false);
         }}
+        theme={emojiPickerTheme}
         defaultHeight={600}
       />
     </>
