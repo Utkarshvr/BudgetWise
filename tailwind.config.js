@@ -5,6 +5,13 @@ module.exports = {
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Montserrat_400Regular", "sans-serif"],
+        regular: ["Montserrat_400Regular", "sans-serif"],
+        medium: ["Montserrat_500Medium", "sans-serif"],
+        semibold: ["Montserrat_600SemiBold", "sans-serif"],
+        bold: ["Montserrat_700Bold", "sans-serif"],
+      },
       colors: {
         // Raw brand palette (not used directly in classes, but available if needed)
         brand: {
