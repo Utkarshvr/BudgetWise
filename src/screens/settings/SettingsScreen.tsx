@@ -6,10 +6,12 @@ import {
   Modal,
   Pressable,
   Image,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useSupabaseSession } from "@/hooks";
 import { useThemeColors } from "@/constants/theme";
 import { supabase } from "@/lib";
@@ -27,6 +29,10 @@ export default function SettingsScreen() {
     "Guest";
 
   const email = user?.email ?? "";
+  const avatarUrl =
+    (user?.user_metadata as any)?.avatar_url ||
+    (user?.user_metadata as any)?.picture ||
+    null;
 
   const handleAccountSettings = () => {
     router.push("/(auth)/account-settings");
@@ -56,25 +62,49 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleTermsService = async () => {
+    try {
+      await WebBrowser.openBrowserAsync("https://uvcodes.vercel.app");
+    } catch (error) {
+      console.error("Error opening Terms & Service:", error);
+    }
+  };
+
   return (
     <SafeAreaView
-      className="flex-1 px-4 pt-6"
+      className="flex-1"
       style={{ backgroundColor: colors.background.DEFAULT }}
     >
+      <ScrollView
+        className="flex-1 px-4 pt-6"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      >
+      {/* Profile header */}
       <View className="items-center mb-8">
         <View
           className="w-24 h-24 rounded-full items-center justify-center overflow-hidden"
           style={{
-            backgroundColor: colors.primary.soft,
-            borderColor: colors.primary.border,
-            borderWidth: 1,
+            backgroundColor: colors.card.DEFAULT,
+            borderColor: colors.primary.soft,
+            borderWidth: 2,
           }}
         >
-          <Image
-            source={require("@/assets/brand/icon.png")}
-            style={{ width: 96, height: 96 }}
-            resizeMode="contain"
-          />
+          {avatarUrl ? (
+            <Image
+              source={{ uri: avatarUrl }}
+              style={{ width: 96, height: 96 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="items-center justify-center w-full h-full">
+              <MaterialIcons
+                name="person"
+                size={48}
+                color={colors.primary.DEFAULT}
+              />
+            </View>
+          )}
         </View>
         <Text
           className="mt-4 text-lg font-semibold text-center"
@@ -90,62 +120,243 @@ export default function SettingsScreen() {
             {email}
           </Text>
         ) : null}
-      </View>
 
-      <View
-        className="rounded-2xl overflow-hidden mb-6"
-        style={{ backgroundColor: colors.muted.DEFAULT }}
-      >
+        {/* Upgrade pill – visually similar to reference, non-blocking */}
         <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={handleAccountSettings}
-          className="flex-row items-center justify-between px-4 py-4"
+          activeOpacity={0.9}
+          className="mt-4 px-6 py-3 rounded-full flex-row items-center gap-2"
+          style={{ backgroundColor: colors.primary.DEFAULT }}
         >
-          <View className="flex-row items-center gap-3">
-            <View
-              className="w-9 h-9 items-center justify-center rounded-full"
-              style={{ backgroundColor: colors.primary.soft }}
-            >
-              <MaterialIcons
-                name="person-outline"
-                size={20}
-                color={colors.primary.DEFAULT}
-              />
-            </View>
-            <View>
-              <Text
-                className="text-base font-medium"
-                style={{ color: colors.foreground }}
-              >
-                Account Settings
-              </Text>
-              <Text
-                className="text-xs mt-0.5"
-                style={{ color: colors.muted.foreground }}
-              >
-                Update your name or password
-              </Text>
-            </View>
-          </View>
+          <Text
+            className="text-sm font-semibold"
+            style={{ color: colors.primary.foreground }}
+          >
+            Upgrade to Premium
+          </Text>
           <MaterialIcons
-            name="chevron-right"
-            size={22}
-            color={colors.muted.foreground}
+            name="workspace-premium"
+            size={18}
+            color={colors.primary.foreground}
           />
         </TouchableOpacity>
       </View>
 
-      <View
-        className="mt-auto mb-4"
-      >
+      {/* Settings section */}
+      <View className="mb-6">
+        <Text
+          className="mb-3 text-xs font-semibold uppercase tracking-wide"
+          style={{ color: colors.muted.foreground }}
+        >
+          Settings
+        </Text>
+
+        <View
+          className="rounded-2xl overflow-hidden"
+          style={{ backgroundColor: colors.card.DEFAULT }}
+        >
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleAccountSettings}
+            className="flex-row items-center justify-between px-4 py-4"
+          >
+            <View className="flex-row items-center gap-3">
+              <View
+                className="w-9 h-9 items-center justify-center rounded-full"
+                style={{ backgroundColor: colors.primary.soft }}
+              >
+                <MaterialIcons
+                  name="person-outline"
+                  size={20}
+                  color={colors.primary.DEFAULT}
+                />
+              </View>
+              <View>
+                <Text
+                  className="text-base font-medium"
+                  style={{ color: colors.foreground }}
+                >
+                  Account Settings
+                </Text>
+                <Text
+                  className="text-xs mt-0.5"
+                  style={{ color: colors.muted.foreground }}
+                >
+                  Manage your personal information
+                </Text>
+              </View>
+            </View>
+            <MaterialIcons
+              name="chevron-right"
+              size={22}
+              color={colors.muted.foreground}
+            />
+          </TouchableOpacity>
+
+          <View
+            className="h-px"
+            style={{ backgroundColor: colors.border }}
+          />
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            className="flex-row items-center justify-between px-4 py-4"
+          >
+            <View className="flex-row items-center gap-3">
+              <View
+                className="w-9 h-9 items-center justify-center rounded-full"
+                style={{ backgroundColor: colors.muted.DEFAULT }}
+              >
+                <MaterialIcons
+                  name="star-border"
+                  size={20}
+                  color={colors.foreground}
+                />
+              </View>
+              <View>
+                <Text
+                  className="text-base font-medium"
+                  style={{ color: colors.foreground }}
+                >
+                  Subscription
+                </Text>
+                <Text
+                  className="text-xs mt-0.5"
+                  style={{ color: colors.muted.foreground }}
+                >
+                  Upgrade to premium
+                </Text>
+              </View>
+            </View>
+            <MaterialIcons
+              name="chevron-right"
+              size={22}
+              color={colors.muted.foreground}
+            />
+          </TouchableOpacity>
+
+          <View
+            className="h-px"
+            style={{ backgroundColor: colors.border }}
+          />
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            className="flex-row items-center justify-between px-4 py-4"
+          >
+            <View className="flex-row items-center gap-3">
+              <View
+                className="w-9 h-9 items-center justify-center rounded-full"
+                style={{ backgroundColor: colors.muted.DEFAULT }}
+              >
+                <MaterialIcons
+                  name="card-giftcard"
+                  size={20}
+                  color={colors.foreground}
+                />
+              </View>
+              <View>
+                <Text
+                  className="text-base font-medium"
+                  style={{ color: colors.foreground }}
+                >
+                  Referral Program
+                </Text>
+                <Text
+                  className="text-xs mt-0.5"
+                  style={{ color: colors.muted.foreground }}
+                >
+                  Invite friends and earn rewards
+                </Text>
+              </View>
+            </View>
+            <MaterialIcons
+              name="chevron-right"
+              size={22}
+              color={colors.muted.foreground}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Support section */}
+      <View className="mb-8">
+        <Text
+          className="mb-3 text-xs font-semibold uppercase tracking-wide"
+          style={{ color: colors.muted.foreground }}
+        >
+          Support
+        </Text>
+
+        <View
+          className="rounded-2xl overflow-hidden"
+          style={{ backgroundColor: colors.card.DEFAULT }}
+        >
+          <TouchableOpacity
+            activeOpacity={0.7}
+            className="flex-row items-center justify-between px-4 py-4"
+          >
+            <View className="flex-row items-center gap-3">
+              <View
+                className="w-9 h-9 items-center justify-center rounded-full"
+                style={{ backgroundColor: colors.muted.DEFAULT }}
+              >
+                <MaterialIcons
+                  name="help-outline"
+                  size={20}
+                  color={colors.foreground}
+                />
+              </View>
+              <View>
+                <Text
+                  className="text-base font-medium"
+                  style={{ color: colors.foreground }}
+                >
+                  Help Center
+                </Text>
+                <Text
+                  className="text-xs mt-0.5"
+                  style={{ color: colors.muted.foreground }}
+                >
+                  Frequently asked questions and guides
+                </Text>
+              </View>
+            </View>
+            <MaterialIcons
+              name="chevron-right"
+              size={22}
+              color={colors.muted.foreground}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Actions */}
+      <View className="mb-4 gap-3">
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => setShowLogoutConfirm(true)}
-          className="w-full rounded-xl flex-row items-center justify-center gap-2 px-4 py-3"
+          className="w-full rounded-full flex-row items-center justify-center gap-2 px-4 py-3"
+          style={{
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <MaterialIcons name="logout" size={20} color={colors.foreground} />
+          <Text
+            className="text-base font-semibold"
+            style={{ color: colors.foreground }}
+          >
+            Log out
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          className="w-full rounded-full flex-row items-center justify-center gap-2 px-4 py-3"
           style={{ backgroundColor: colors.destructive.DEFAULT }}
         >
           <MaterialIcons
-            name="logout"
+            name="delete-forever"
             size={20}
             color={colors.destructive.foreground}
           />
@@ -153,9 +364,29 @@ export default function SettingsScreen() {
             className="text-base font-semibold"
             style={{ color: colors.destructive.foreground }}
           >
-            Logout
+            Delete Account
           </Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Terms & Service */}
+      <View className="mb-6 px-2">
+        <Text
+          className="text-xs text-center"
+          style={{ color: colors.muted.foreground }}
+        >
+          By using BudgetWise, you agree to our{" "}
+          <Text
+            onPress={handleTermsService}
+            style={{
+              color: colors.primary.DEFAULT,
+              textDecorationLine: "underline",
+            }}
+          >
+            Terms&Service
+          </Text>
+          .
+        </Text>
       </View>
 
       <Modal
@@ -170,51 +401,75 @@ export default function SettingsScreen() {
           onPress={() => setShowLogoutConfirm(false)}
         >
           <Pressable
-            className="w-full rounded-2xl p-5"
-            style={{ backgroundColor: colors.background.DEFAULT }}
+            className="w-full rounded-2xl p-6"
+            style={{ backgroundColor: colors.card.DEFAULT }}
             onPress={(e) => e.stopPropagation()}
           >
+            {/* Icon */}
+            <View className="items-center mb-4">
+              <View
+                className="w-12 h-12 rounded-xl items-center justify-center"
+                style={{ backgroundColor: colors.primary.soft }}
+              >
+                <MaterialIcons
+                  name="logout"
+                  size={24}
+                  color={colors.primary.DEFAULT}
+                />
+              </View>
+            </View>
+
+            {/* Title */}
             <Text
-              className="text-lg font-semibold mb-2"
+              className="text-xl font-bold text-center mb-2"
               style={{ color: colors.foreground }}
             >
-              Logout
+              Sign Out
             </Text>
+
+            {/* Confirmation Message */}
             <Text
-              className="text-sm mb-4"
+              className="text-sm text-center mb-6"
               style={{ color: colors.muted.foreground }}
             >
-              Are you sure you want to logout?
+              Are you sure you want to sign out from your account?
             </Text>
-            <View className="flex-row justify-end gap-3 mt-2">
+
+            {/* Buttons */}
+            <View className="flex-row gap-3">
               <TouchableOpacity
                 onPress={() => setShowLogoutConfirm(false)}
-                className="px-4 py-2 rounded-lg"
-                style={{ backgroundColor: colors.muted.DEFAULT }}
+                className="flex-1 rounded-xl items-center justify-center py-3"
+                style={{
+                  backgroundColor: colors.muted.DEFAULT,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
               >
                 <Text
-                  className="text-sm font-medium"
-                  style={{ color: colors.muted.foreground }}
+                  className="text-base font-semibold"
+                  style={{ color: colors.foreground }}
                 >
                   Cancel
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleLogout}
-                className="px-4 py-2 rounded-lg"
-                style={{ backgroundColor: colors.destructive.DEFAULT }}
+                className="flex-1 rounded-xl items-center justify-center py-3"
+                style={{ backgroundColor: colors.primary.DEFAULT }}
               >
                 <Text
-                  className="text-sm font-semibold"
-                  style={{ color: colors.destructive.foreground }}
+                  className="text-base font-semibold"
+                  style={{ color: colors.primary.foreground }}
                 >
-                  Logout
+                  Sign Out
                 </Text>
               </TouchableOpacity>
             </View>
           </Pressable>
         </Pressable>
       </Modal>
+      </ScrollView>
     </SafeAreaView>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, router } from "expo-router";
 import { Text, View, TextInput, Alert } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 import { supabase, getAuthRedirectUrl, signInWithGoogle } from "@/lib";
 import { AuthScaffold } from "./components/AuthScaffold";
 import { FormField, PrimaryButton } from "@/components/ui";
@@ -127,6 +128,14 @@ export default function SignUpScreen() {
     }
   };
 
+  const handleTermsService = async () => {
+    try {
+      await WebBrowser.openBrowserAsync("https://uvcodes.vercel.app");
+    } catch (error) {
+      console.error("Error opening Terms & Service:", error);
+    }
+  };
+
   return (
     <AuthScaffold
       title="Create your account"
@@ -202,6 +211,16 @@ export default function SignUpScreen() {
           loading={googleLoading}
           disabled={loading || googleLoading}
         />
+
+        <Text className="text-xs text-center text-neutral-500 dark:text-neutral-400 mt-2">
+          By continuing, you agree to our{" "}
+          <Text
+            onPress={handleTermsService}
+            className="font-semibold text-neutral-900 dark:text-white underline"
+          >
+            Terms&Services
+          </Text>
+        </Text>
       </View>
     </AuthScaffold>
   );
