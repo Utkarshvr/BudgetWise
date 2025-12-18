@@ -38,6 +38,10 @@ export default function SettingsScreen() {
     router.push("/(auth)/account-settings");
   };
 
+  const handleHelpCenter = () => {
+    router.push("/(auth)/help-center");
+  };
+
   const handleLogout = async () => {
     try {
       setShowLogoutConfirm(false);
@@ -174,7 +178,6 @@ export default function SettingsScreen() {
                       name="person-outline"
                       size={20}
                       style={{ color: colors.foreground }}
-                      r
                     />
                   </View>
                   <View>
@@ -294,6 +297,7 @@ export default function SettingsScreen() {
             >
               <TouchableOpacity
                 activeOpacity={0.7}
+                onPress={handleHelpCenter}
                 className="flex-row items-center justify-between px-4 py-4"
               >
                 <View className="flex-row items-center gap-3">
