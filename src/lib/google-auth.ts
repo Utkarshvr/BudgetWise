@@ -72,16 +72,27 @@ export async function signInWithGoogle() {
         }
         
         // Check if a session was already created (might happen quickly on iOS)
-        const { data: { session } } = await supabase.auth.getSession();
+        let { data: { session } } = await supabase.auth.getSession();
         if (session) {
           console.log('🔐 [GOOGLE AUTH] Session already exists after dismiss - auth succeeded');
           return { success: true };
         }
-        // If no session, wait a bit for deep link to process (iOS can be slow)
-        // The loading state will be reset by the auth state listener in the screen
-        // or by timeout if nothing happens
-        console.log('🔐 [GOOGLE AUTH] No session yet - waiting for deep link callback');
-        return { success: true };
+        
+        // If no session, wait a short time for deep link to process (iOS can be slow)
+        // But if user cancelled, we need to reset loading state quickly
+        console.log('🔐 [GOOGLE AUTH] No session yet - waiting briefly for deep link callback');
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+        
+        // Check again after waiting
+        ({ data: { session } } = await supabase.auth.getSession());
+        if (session) {
+          console.log('🔐 [GOOGLE AUTH] Session found after waiting - auth succeeded');
+          return { success: true };
+        }
+        
+        // If still no session after waiting, user likely cancelled
+        console.log('🔐 [GOOGLE AUTH] No session after waiting - user likely cancelled');
+        throw new Error("Sign in cancelled");
       }
 
       // If success but no URL, the deep link handler in root layout will handle the redirect
