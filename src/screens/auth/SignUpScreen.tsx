@@ -130,7 +130,7 @@ export default function SignUpScreen() {
 
   const handleTermsService = async () => {
     try {
-      await WebBrowser.openBrowserAsync("https://uvcodes.vercel.app");
+      await WebBrowser.openBrowserAsync("https://uv-budget-tracker.vercel.app");
     } catch (error) {
       console.error("Error opening Terms & Service:", error);
     }
