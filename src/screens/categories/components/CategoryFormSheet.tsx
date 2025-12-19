@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
@@ -11,6 +11,9 @@ import { useColorScheme } from "react-native";
 import { Category, CategoryFormData } from "@/types/category";
 import { PrimaryButton } from "@/components/ui";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
+import { supabase } from "@/lib";
+import { useSupabaseSession } from "@/hooks";
+import { getErrorMessage } from "@/utils";
 
 type CategoryFormSheetProps = {
   visible: boolean;
@@ -19,6 +22,7 @@ type CategoryFormSheetProps = {
   onClose: () => void;
   onSubmit: (data: CategoryFormData) => Promise<void>;
   loading?: boolean;
+  allCategories?: Category[]; // All categories to filter parent options
 };
 
 export function CategoryFormSheet({
@@ -28,7 +32,9 @@ export function CategoryFormSheet({
   onClose,
   onSubmit,
   loading = false,
+  allCategories = [],
 }: CategoryFormSheetProps) {
+  const { session } = useSupabaseSession();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["90%"], []);
 
@@ -87,6 +93,7 @@ export function CategoryFormSheet({
     emoji: "📁",
     background_color: defaultBgColor,
     category_type: defaultCategoryType,
+    parent_id: null,
   });
   const nameInputRef = useRef<TextInput>(null);
   const nameValueRef = useRef("");
@@ -95,6 +102,11 @@ export function CategoryFormSheet({
     Partial<Record<keyof CategoryFormData, string>>
   >({});
   const [showEmojiMenu, setShowEmojiMenu] = useState(false);
+  const [showParentPicker, setShowParentPicker] = useState(false);
+  const [showCreateParent, setShowCreateParent] = useState(false);
+  const [newParentName, setNewParentName] = useState("");
+  const [newParentEmoji, setNewParentEmoji] = useState("📁");
+  const [creatingParent, setCreatingParent] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -104,6 +116,18 @@ export function CategoryFormSheet({
     }
   }, [visible]);
 
+  // Get available parent categories (only parent categories of the same type)
+  const availableParents = useMemo(() => {
+    const categoryType = category?.category_type || defaultCategoryType;
+    return allCategories.filter(
+      (cat) =>
+        cat.is_parent_category === true &&
+        cat.category_type === categoryType &&
+        cat.id !== category?.id &&
+        !cat.is_archived
+    );
+  }, [allCategories, category, defaultCategoryType]);
+
   useEffect(() => {
     if (category) {
       const newFormData = {
@@ -111,6 +135,7 @@ export function CategoryFormSheet({
         emoji: category.emoji,
         background_color: defaultBgColor,
         category_type: category.category_type,
+        parent_id: category.parent_id || null,
       };
       setFormData(newFormData);
       nameValueRef.current = category.name;
@@ -121,6 +146,7 @@ export function CategoryFormSheet({
         emoji: "📁",
         background_color: defaultBgColor,
         category_type: defaultCategoryType,
+        parent_id: null,
       };
       setFormData(newFormData);
       nameValueRef.current = "";
@@ -128,6 +154,10 @@ export function CategoryFormSheet({
     }
     setErrors({});
     setShowEmojiMenu(false);
+    setShowParentPicker(false);
+    setShowCreateParent(false);
+    setNewParentName("");
+    setNewParentEmoji("📁");
   }, [category, defaultCategoryType, defaultBgColor]);
 
   const renderBackdrop = useCallback(
@@ -169,6 +199,66 @@ export function CategoryFormSheet({
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleCreateParent = async () => {
+    if (!session?.user) return;
+    
+    const trimmedName = newParentName.trim();
+    if (!trimmedName) {
+      Alert.alert("Error", "Parent category name is required");
+      return;
+    }
+
+    setCreatingParent(true);
+    try {
+      const categoryType = category?.category_type || defaultCategoryType;
+      
+      // Check for duplicate
+      const { data: existing, error: checkError } = await supabase
+        .from("categories")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .eq("category_type", categoryType)
+        .eq("is_archived", false)
+        .ilike("name", trimmedName);
+
+      if (checkError) throw checkError;
+
+      if (existing && existing.length > 0) {
+        Alert.alert("Error", "A category with this name already exists");
+        setCreatingParent(false);
+        return;
+      }
+
+      // Create parent category
+      const { data: newParent, error: createError } = await supabase
+        .from("categories")
+        .insert({
+          user_id: session.user.id,
+          name: trimmedName,
+          emoji: newParentEmoji,
+          background_color: defaultBgColor,
+          category_type: categoryType,
+          is_parent_category: true,
+          parent_id: null,
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      // Set the new parent as selected
+      setFormData({ ...formData, parent_id: newParent.id });
+      setShowCreateParent(false);
+      setNewParentName("");
+      setNewParentEmoji("📁");
+    } catch (error: any) {
+      const errorMessage = getErrorMessage(error, "Failed to create parent category");
+      Alert.alert("Error", errorMessage);
+    } finally {
+      setCreatingParent(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -243,7 +333,7 @@ export function CategoryFormSheet({
               <View className="flex-row mb-6">
                 <TouchableOpacity
                   onPress={() =>
-                    setFormData({ ...formData, category_type: "income" })
+                    setFormData({ ...formData, category_type: "income", parent_id: null })
                   }
                   className={`flex-1 px-4 py-3 rounded-xl mr-2 ${
                     formData.category_type === "income"
@@ -258,7 +348,7 @@ export function CategoryFormSheet({
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() =>
-                    setFormData({ ...formData, category_type: "expense" })
+                    setFormData({ ...formData, category_type: "expense", parent_id: null })
                   }
                   className={`flex-1 px-4 py-3 rounded-xl ${
                     formData.category_type === "expense"
@@ -271,6 +361,161 @@ export function CategoryFormSheet({
                     Expense
                   </Text>
                 </TouchableOpacity>
+              </View>
+            </>
+          )}
+
+          {/* Parent Category Selection */}
+          <Text className="text-neutral-300 text-sm mb-3">Parent Category (Optional)</Text>
+          {!showCreateParent ? (
+            <>
+              <TouchableOpacity
+                onPress={() => setShowParentPicker(!showParentPicker)}
+                className="bg-neutral-800 rounded-2xl px-4 py-3 mb-3 flex-row items-center justify-between"
+              >
+                <View className="flex-row items-center flex-1">
+                  <MaterialIcons
+                    name="folder"
+                    size={20}
+                    color={formData.parent_id ? colors.primary.DEFAULT : "#9ca3af"}
+                  />
+                  <Text
+                    className={`text-base ml-3 ${
+                      formData.parent_id ? "text-white" : "text-neutral-400"
+                    }`}
+                  >
+                    {formData.parent_id
+                      ? availableParents.find((p) => p.id === formData.parent_id)?.name ||
+                        "Select parent"
+                      : "No parent (Top level)"}
+                  </Text>
+                </View>
+                <MaterialIcons
+                  name={showParentPicker ? "expand-less" : "keyboard-arrow-down"}
+                  size={24}
+                  color="#9ca3af"
+                />
+              </TouchableOpacity>
+
+              {showParentPicker && (
+                <View className="bg-neutral-900 rounded-xl p-3 mb-3 max-h-48">
+                  <TouchableOpacity
+                    onPress={() => {
+                      setFormData({ ...formData, parent_id: null });
+                      setShowParentPicker(false);
+                    }}
+                    className={`flex-row items-center px-3 py-2 rounded-lg mb-2 ${
+                      formData.parent_id === null
+                        ? "bg-primary/20 border border-primary"
+                        : "bg-transparent"
+                    }`}
+                  >
+                    <MaterialIcons
+                      name="folder"
+                      size={20}
+                      color={formData.parent_id === null ? colors.primary.DEFAULT : "#9ca3af"}
+                    />
+                    <Text
+                      className={`text-sm ml-3 ${
+                        formData.parent_id === null ? "text-primary" : "text-neutral-300"
+                      }`}
+                    >
+                      No parent (Top level)
+                    </Text>
+                  </TouchableOpacity>
+
+                  {availableParents.map((parent) => (
+                    <TouchableOpacity
+                      key={parent.id}
+                      onPress={() => {
+                        setFormData({ ...formData, parent_id: parent.id });
+                        setShowParentPicker(false);
+                      }}
+                      className={`flex-row items-center px-3 py-2 rounded-lg mb-2 ${
+                        formData.parent_id === parent.id
+                          ? "bg-primary/20 border border-primary"
+                          : "bg-transparent"
+                      }`}
+                    >
+                      <View
+                        className="w-8 h-8 rounded-full items-center justify-center mr-2"
+                        style={{ backgroundColor: defaultBgColor }}
+                      >
+                        <Text style={{ fontSize: 16 }}>{parent.emoji}</Text>
+                      </View>
+                      <Text
+                        className={`text-sm flex-1 ${
+                          formData.parent_id === parent.id
+                            ? "text-primary"
+                            : "text-neutral-300"
+                        }`}
+                      >
+                        {parent.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowCreateParent(true);
+                      setShowParentPicker(false);
+                    }}
+                    className="flex-row items-center px-3 py-2 rounded-lg mt-2 border border-primary/50"
+                  >
+                    <MaterialIcons name="add-circle-outline" size={20} color={colors.primary.DEFAULT} />
+                    <Text className="text-primary text-sm ml-3">
+                      Create New Parent Category
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          ) : (
+            <>
+              <View className="bg-neutral-800 rounded-2xl p-4 mb-3">
+                <Text className="text-neutral-300 text-sm mb-3">Create Parent Category</Text>
+                
+                <View className="items-center mb-4">
+                  <TouchableOpacity
+                    onPress={() => setShowEmojiMenu(true)}
+                    className="size-16 rounded-full items-center justify-center"
+                    style={{ backgroundColor: defaultBgColor }}
+                  >
+                    <Text style={{ fontSize: 32 }}>{newParentEmoji}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text className="text-neutral-300 text-xs mb-2">Parent Name</Text>
+                <TextInput
+                  value={newParentName}
+                  onChangeText={setNewParentName}
+                  placeholder="e.g., Food, Transportation"
+                  placeholderTextColor="#6b7280"
+                  className="bg-neutral-900 rounded-xl px-4 py-3 text-white text-sm mb-3"
+                  autoFocus
+                />
+
+                <View className="flex-row gap-2">
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowCreateParent(false);
+                      setNewParentName("");
+                      setNewParentEmoji("📁");
+                    }}
+                    className="flex-1 bg-neutral-700 rounded-xl py-2"
+                  >
+                    <Text className="text-white text-sm font-medium text-center">Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleCreateParent}
+                    className="flex-1 bg-primary rounded-xl py-2"
+                    disabled={creatingParent || !newParentName.trim()}
+                  >
+                    <Text className="text-white text-sm font-medium text-center">
+                      {creatingParent ? "Creating..." : "Create"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </>
           )}

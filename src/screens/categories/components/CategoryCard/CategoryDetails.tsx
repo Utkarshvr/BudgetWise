@@ -12,6 +12,7 @@ type CategoryDetailsProps = {
   accounts: Account[];
   onManageReservations: () => void;
   onEditCategory?: () => void;
+  isParent?: boolean;
 };
 
 export function CategoryDetails({
@@ -21,8 +22,31 @@ export function CategoryDetails({
   accounts,
   onManageReservations,
   onEditCategory,
+  isParent = false,
 }: CategoryDetailsProps) {
   const isReserved = categoryReservations.length > 0;
+
+  // Parent categories can't hold money directly
+  if (isParent) {
+    return (
+      <View className="mt-3">
+        <Text className="text-muted-foreground text-sm">
+          Parent categories don't hold funds directly. The total shown is the sum of all child categories' funds.
+        </Text>
+        <View className="flex-row mt-3">
+          <TouchableOpacity
+            className="flex-1 flex-row items-center justify-center bg-muted rounded-xl py-2"
+            onPress={onEditCategory}
+          >
+            <MaterialIcons name="edit" size={16} color={theme.colors.foreground} />
+            <Text className="text-foreground text-sm font-semibold ml-2">
+              Edit Category
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   if (category.category_type === "income") {
     return (
