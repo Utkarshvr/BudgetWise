@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Platform,
 } from "react-native";
@@ -16,7 +15,7 @@ import {
 } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { supabase } from "@/lib";
-import { useSupabaseSession } from "@/hooks";
+import { useSupabaseSession, useToast } from "@/hooks";
 import { Account } from "@/types/account";
 import {
   Transaction,
@@ -35,6 +34,7 @@ import { WithdrawFundsSheet } from "./components/WithdrawFundsSheet";
 import { ACCOUNT_TYPE_ICONS, getTotalReserved } from "@/screens/accounts/utils";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
 import { getErrorMessage } from "@/utils";
+import { Toast } from "@/components/ui/Toast";
 
 type TransactionFormScreenProps = {
   initialAmount?: string;
@@ -51,6 +51,7 @@ export default function TransactionFormScreen({
 }: TransactionFormScreenProps) {
   const { session } = useSupabaseSession();
   const insets = useSafeAreaInsets();
+  const { toast, showError, showSuccess, showWarning, hideToast } = useToast();
   const isEditing = !!transaction;
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -198,7 +199,7 @@ export default function TransactionFormScreen({
       setAccounts(data || []);
     } catch (error: any) {
       const errorMessage = getErrorMessage(error, "Failed to fetch accounts");
-      Alert.alert("Error", errorMessage);
+      showError(errorMessage);
     } finally {
       setLoadingAccounts(false);
     }
@@ -305,10 +306,7 @@ export default function TransactionFormScreen({
 
       // Check for active duplicate (non-archived) with same (name, type)
       if (duplicateCategory && !duplicateCategory.is_archived) {
-        Alert.alert(
-          "Duplicate Category",
-          `A ${categoryFormData.category_type} category with the name "${trimmedName}" already exists. Please choose a different name.`
-        );
+        showError("Category already exists");
         setSubmittingCategory(false);
         return;
       }
@@ -365,7 +363,7 @@ export default function TransactionFormScreen({
         error,
         `Failed to ${editingCategory ? "update" : "create"} category`
       );
-      Alert.alert("Error", errorMessage);
+      showError(errorMessage);
     } finally {
       setSubmittingCategory(false);
     }
@@ -395,39 +393,59 @@ export default function TransactionFormScreen({
     if (formData.type === "expense") {
       if (!formData.from_account_id) {
         newErrors.from_account_id = "From account is required for expenses";
-      }
-
-      // Check if category has reservation and validate amount against spendable + reserved
-      // (We allow transactions that exceed reserved amount as long as spendable + reserved is enough)
-      if (selectedCategory && formData.from_account_id) {
+      } else {
+        // Check balance for expense transactions
         const account = accounts.find((a) => a.id === formData.from_account_id);
-        if (account) {
-          const reservation = reservations.find(
-            (r) =>
-              r.category_id === selectedCategory.id &&
-              r.account_id === formData.from_account_id
-          );
-
-          if (reservation) {
-            const amountNum = parseFloat(formData.amount || "0");
+        if (account && formData.amount.trim()) {
+          const amountNum = parseFloat(formData.amount);
+          if (!isNaN(amountNum) && amountNum > 0) {
             const amountSmallest = Math.round(amountNum * 100);
+            const totalBalance = account.balance;
+            const currency = account.currency || "INR";
 
-            // Calculate available amount: spendable + reserved for this category
-            const reservedTotal = getTotalReserved(account.id, reservations);
-            const spendable = Math.max(account.balance - reservedTotal, 0);
-            
-            // For editing, we need to account for the old amount being added back
-            const oldAmount =
-              isEditing && transaction?.type === "expense"
-                ? transaction.amount
-                : 0;
-            
-            // Available = spendable + reserved for this category + old amount (if editing)
-            const availableAmount = spendable + reservation.reserved_amount + oldAmount;
+            // First check: If transaction amount exceeds total account balance, show error
+            if (amountSmallest > totalBalance) {
+              const symbol = currency === "INR" ? "₹" : currency;
+              showError(
+                `Insufficient balance. Account has ${symbol}${(totalBalance / 100).toFixed(2)}`
+              );
+              newErrors.amount = "Amount exceeds account balance";
+              setErrors(newErrors);
+              return false;
+            }
 
-            if (amountSmallest > availableAmount) {
-              newErrors.amount =
-                "Amount exceeds available balance (spendable + reserved for this category)";
+            // Check if category has reservation and validate amount against spendable + reserved
+            // (We allow transactions that exceed reserved amount as long as spendable + reserved is enough)
+            if (selectedCategory) {
+              const reservation = reservations.find(
+                (r) =>
+                  r.category_id === selectedCategory.id &&
+                  r.account_id === formData.from_account_id
+              );
+
+              if (reservation) {
+                // Calculate available amount: spendable + reserved for this category
+                const reservedTotal = getTotalReserved(account.id, reservations);
+                const spendable = Math.max(account.balance - reservedTotal, 0);
+                
+                // For editing, we need to account for the old amount being added back
+                const oldAmount =
+                  isEditing && transaction?.type === "expense"
+                    ? transaction.amount
+                    : 0;
+                
+                // Available = spendable + reserved for this category + old amount (if editing)
+                const availableAmount = spendable + reservation.reserved_amount + oldAmount;
+
+                if (amountSmallest > availableAmount) {
+                  const symbol = currency === "INR" ? "₹" : currency;
+                  showError(
+                    `Insufficient funds. Available: ${symbol}${(availableAmount / 100).toFixed(2)}`
+                  );
+                  newErrors.amount =
+                    "Amount exceeds available balance (spendable + reserved for this category)";
+                }
+              }
             }
           }
         }
@@ -490,9 +508,9 @@ export default function TransactionFormScreen({
 
         // First check: If transaction amount exceeds total account balance, show error
         if (amountInSmallestUnit > totalBalance) {
-          Alert.alert(
-            "Insufficient Balance",
-            `Transaction amount (${(amountInSmallestUnit / 100).toFixed(2)} ${currency}) exceeds the total account balance (${(totalBalance / 100).toFixed(2)} ${currency}). Please use a different account or reduce the transaction amount.`
+          const symbol = currency === "INR" ? "₹" : currency;
+          showError(
+            `Insufficient balance. Account has ${symbol}${(totalBalance / 100).toFixed(2)}`
           );
           return;
         }
@@ -541,9 +559,9 @@ export default function TransactionFormScreen({
             return;
           } else {
             // No other reservations to withdraw, show error
-            Alert.alert(
-              "Insufficient Funds",
-              `Transaction amount (${(amountInSmallestUnit / 100).toFixed(2)} ${currency}) exceeds available balance. Available: ${(availableForTransaction / 100).toFixed(2)} ${currency}`
+            const symbol = currency === "INR" ? "₹" : currency;
+            showError(
+              `Insufficient funds. Available: ${symbol}${(availableForTransaction / 100).toFixed(2)}`
             );
             return;
           }
@@ -656,15 +674,9 @@ export default function TransactionFormScreen({
           }
         }
 
-        Alert.alert("Success", "Transaction updated successfully", [
-          {
-            text: "OK",
-            onPress: () => {
-              onSuccess();
-              onClose();
-            },
-          },
-        ]);
+        showSuccess("Transaction updated");
+        onSuccess();
+        onClose();
       } else {
         // INSERT MODE: Create new transaction
         const { data, error } = await supabase
@@ -720,22 +732,16 @@ export default function TransactionFormScreen({
           }
         }
 
-        Alert.alert("Success", "Transaction added successfully", [
-          {
-            text: "OK",
-            onPress: () => {
-              onSuccess();
-              onClose();
-            },
-          },
-        ]);
+        showSuccess("Transaction added");
+        onSuccess();
+        onClose();
       }
     } catch (error: any) {
       const errorMessage = getErrorMessage(
         error,
         `Failed to ${isEditing ? "update" : "add"} transaction`
       );
-      Alert.alert("Error", errorMessage);
+      showError(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -948,6 +954,12 @@ export default function TransactionFormScreen({
 
   return (
     <>
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        visible={toast.visible}
+        onHide={hideToast}
+      />
       <SafeAreaView className="flex-1 bg-neutral-900">
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3 bg-neutral-800">
