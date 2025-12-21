@@ -486,8 +486,24 @@ export default function TransactionFormScreen({
           return;
         }
 
-        // Second check: If transaction amount exceeds spendable balance, prompt user to withdraw funds
-        if (amountInSmallestUnit > spendable) {
+        // Check if the transaction category has a reservation in this account
+        // If yes, the reserved amount is available for this transaction
+        let availableForTransaction = spendable;
+        if (formData.category_id) {
+          const categoryReservation = reservations.find(
+            (r) =>
+              r.category_id === formData.category_id &&
+              r.account_id === account.id
+          );
+          if (categoryReservation) {
+            // Add the reserved amount for this category to available balance
+            // The reserved funds are available for transactions in that category
+            availableForTransaction = spendable + categoryReservation.reserved_amount;
+          }
+        }
+
+        // Second check: If transaction amount exceeds available balance for this transaction
+        if (amountInSmallestUnit > availableForTransaction) {
           // Check if account has any reserved funds to withdraw
           const hasReservations = reservations.some(
             (r) => r.account_id === account.id && r.reserved_amount > 0
