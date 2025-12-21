@@ -12,7 +12,7 @@ BudgetWise is a personal finance application designed to help users take control
 
 ## Who It's For
 
-BudgetWise is designed for individuals who want to:
+BudgetWise was built for users who want to:
 
 - Track their daily income and expenses with ease
 - Plan and allocate funds across different spending categories
