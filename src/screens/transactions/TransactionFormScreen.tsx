@@ -74,6 +74,7 @@ export default function TransactionFormScreen({
     amountInSmallestUnit: number;
     currency: string;
     spendableBalance: number;
+    selectedCategoryId: string | null;
   } | null>(null);
 
   // Initialize form data based on whether we're editing or adding
@@ -396,28 +397,38 @@ export default function TransactionFormScreen({
         newErrors.from_account_id = "From account is required for expenses";
       }
 
-      // Check if category has reservation and validate amount against it
+      // Check if category has reservation and validate amount against spendable + reserved
+      // (We allow transactions that exceed reserved amount as long as spendable + reserved is enough)
       if (selectedCategory && formData.from_account_id) {
-        const reservation = reservations.find(
-          (r) =>
-            r.category_id === selectedCategory.id &&
-            r.account_id === formData.from_account_id
-        );
+        const account = accounts.find((a) => a.id === formData.from_account_id);
+        if (account) {
+          const reservation = reservations.find(
+            (r) =>
+              r.category_id === selectedCategory.id &&
+              r.account_id === formData.from_account_id
+          );
 
-        if (reservation) {
-          const amountNum = parseFloat(formData.amount || "0");
-          const amountSmallest = Math.round(amountNum * 100);
+          if (reservation) {
+            const amountNum = parseFloat(formData.amount || "0");
+            const amountSmallest = Math.round(amountNum * 100);
 
-          // For editing, we need to account for the old amount being added back
-          const oldAmount =
-            isEditing && transaction?.type === "expense"
-              ? transaction.amount
-              : 0;
-          const availableAmount = reservation.reserved_amount + oldAmount;
+            // Calculate available amount: spendable + reserved for this category
+            const reservedTotal = getTotalReserved(account.id, reservations);
+            const spendable = Math.max(account.balance - reservedTotal, 0);
+            
+            // For editing, we need to account for the old amount being added back
+            const oldAmount =
+              isEditing && transaction?.type === "expense"
+                ? transaction.amount
+                : 0;
+            
+            // Available = spendable + reserved for this category + old amount (if editing)
+            const availableAmount = spendable + reservation.reserved_amount + oldAmount;
 
-          if (amountSmallest > availableAmount) {
-            newErrors.amount =
-              "Amount exceeds reserved balance for this category";
+            if (amountSmallest > availableAmount) {
+              newErrors.amount =
+                "Amount exceeds available balance (spendable + reserved for this category)";
+            }
           }
         }
       }
@@ -489,8 +500,9 @@ export default function TransactionFormScreen({
         // Check if the transaction category has a reservation in this account
         // If yes, the reserved amount is available for this transaction
         let availableForTransaction = spendable;
+        let categoryReservation = null;
         if (formData.category_id) {
-          const categoryReservation = reservations.find(
+          categoryReservation = reservations.find(
             (r) =>
               r.category_id === formData.category_id &&
               r.account_id === account.id
@@ -502,30 +514,41 @@ export default function TransactionFormScreen({
           }
         }
 
-        // Second check: If transaction amount exceeds available balance for this transaction
-        if (amountInSmallestUnit > availableForTransaction) {
-          // Check if account has any reserved funds to withdraw
-          const hasReservations = reservations.some(
-            (r) => r.account_id === account.id && r.reserved_amount > 0
+        // If transaction amount is within spendable + reserved for selected category, proceed
+        // (Even if it exceeds just the reserved amount, we'll use all reserved + spendable)
+        if (amountInSmallestUnit <= availableForTransaction) {
+          // Transaction can proceed - will use reserved funds (if any) + spendable
+          // The submitTransaction function will handle deducting the correct amounts
+        } else if (amountInSmallestUnit <= totalBalance) {
+          // Transaction exceeds spendable + reserved for selected category but is within total balance
+          // Show withdraw sheet to allow withdrawing from other categories
+          const hasOtherReservations = reservations.some(
+            (r) => 
+              r.account_id === account.id && 
+              r.reserved_amount > 0 &&
+              r.category_id !== formData.category_id // Exclude selected category
           );
 
-          if (hasReservations) {
+          if (hasOtherReservations) {
             // Show withdraw funds sheet
             setPendingTransactionData({
               amountInSmallestUnit,
               currency,
               spendableBalance: spendable,
+              selectedCategoryId: formData.category_id,
             });
             setShowWithdrawSheet(true);
             return;
           } else {
-            // No reservations to withdraw, show error
+            // No other reservations to withdraw, show error
             Alert.alert(
               "Insufficient Funds",
-              `You don't have enough spendable balance in this account. Available: ${(spendable / 100).toFixed(2)} ${currency}`
+              `Transaction amount (${(amountInSmallestUnit / 100).toFixed(2)} ${currency}) exceeds available balance. Available: ${(availableForTransaction / 100).toFixed(2)} ${currency}`
             );
             return;
           }
+        } else {
+          // Transaction exceeds total balance - already handled above
         }
       }
     }
@@ -588,6 +611,8 @@ export default function TransactionFormScreen({
         }
 
         // Deduct the new amount if it's an expense with a category
+        // If transaction amount exceeds reserved amount, only deduct the reserved amount
+        // The rest will be deducted from account balance via the database trigger
         if (
           formData.type === "expense" &&
           selectedCategory &&
@@ -599,13 +624,16 @@ export default function TransactionFormScreen({
               r.account_id === formData.from_account_id
           );
 
-          if (reservation) {
+          if (reservation && reservation.reserved_amount > 0) {
+            // Only deduct the reserved amount (or transaction amount if less)
+            const amountToDeduct = Math.min(amountInSmallestUnit, reservation.reserved_amount);
+            
             const { error: reservationError } = await supabase.rpc(
               "adjust_category_reservation",
               {
                 p_category_id: selectedCategory.id,
                 p_account_id: formData.from_account_id,
-                p_amount_delta: -amountInSmallestUnit,
+                p_amount_delta: -amountToDeduct,
               }
             );
 
@@ -658,6 +686,8 @@ export default function TransactionFormScreen({
         if (error) throw error;
 
         // If expense transaction with a reserved category, deduct from reservation
+        // If transaction amount exceeds reserved amount, only deduct the reserved amount
+        // The rest will be deducted from account balance via the database trigger
         if (
           formData.type === "expense" &&
           selectedCategory &&
@@ -669,13 +699,16 @@ export default function TransactionFormScreen({
               r.account_id === formData.from_account_id
           );
 
-          if (reservation) {
+          if (reservation && reservation.reserved_amount > 0) {
+            // Only deduct the reserved amount (or transaction amount if less)
+            const amountToDeduct = Math.min(amountInSmallestUnit, reservation.reserved_amount);
+            
             const { error: reservationError } = await supabase.rpc(
               "adjust_category_reservation",
               {
                 p_category_id: selectedCategory.id,
                 p_account_id: formData.from_account_id,
-                p_amount_delta: -amountInSmallestUnit,
+                p_amount_delta: -amountToDeduct,
               }
             );
 
@@ -1252,6 +1285,7 @@ export default function TransactionFormScreen({
           reservations={reservations}
           requiredAmount={pendingTransactionData?.amountInSmallestUnit || 0}
           spendableBalance={pendingTransactionData?.spendableBalance || 0}
+          selectedCategoryId={pendingTransactionData?.selectedCategoryId || null}
           onClose={() => {
             setShowWithdrawSheet(false);
             setPendingTransactionData(null);
