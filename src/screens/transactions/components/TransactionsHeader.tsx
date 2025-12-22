@@ -13,6 +13,9 @@ type TransactionsHeaderProps = {
   onPrev: () => void;
   onNext: () => void;
   onDateSelect?: (date: Date) => void;
+  onSearchPress?: () => void;
+  onFilterPress?: () => void;
+  hasActiveFilters?: boolean;
 };
 
 export function TransactionsHeader({
@@ -22,6 +25,9 @@ export function TransactionsHeader({
   onPrev,
   onNext,
   onDateSelect,
+  onSearchPress,
+  onFilterPress,
+  hasActiveFilters = false,
 }: TransactionsHeaderProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -65,7 +71,44 @@ export function TransactionsHeader({
             </TouchableOpacity>
           </View>
         </View>
-        <LogoIcon />
+        <View className="flex-row items-center gap-2">
+          {onSearchPress && (
+            <TouchableOpacity onPress={onSearchPress} className="p-2">
+              <MaterialIcons
+                name="search"
+                size={24}
+                color={colors.foreground}
+              />
+            </TouchableOpacity>
+          )}
+          {onFilterPress && (
+            <TouchableOpacity
+              onPress={onFilterPress}
+              className="p-2"
+              style={{ position: "relative" }}
+            >
+              <MaterialIcons
+                name="filter-list"
+                size={24}
+                color={hasActiveFilters ? colors.primary.DEFAULT : colors.foreground}
+              />
+              {hasActiveFilters && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: colors.primary.DEFAULT,
+                  }}
+                />
+              )}
+            </TouchableOpacity>
+          )}
+          <LogoIcon />
+        </View>
       </View>
 
       <MonthYearPickerModal
