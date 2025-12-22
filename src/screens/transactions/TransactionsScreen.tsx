@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
+import { useRouter } from "expo-router";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -37,6 +38,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.4; // 40% of screen width
 
 export default function TransactionsScreen() {
+  const router = useRouter();
   const colors = useThemeColors();
   const typeMeta = buildTypeMeta(colors);
 
@@ -217,9 +219,8 @@ export default function TransactionsScreen() {
   );
 
   const handleSearchPress = useCallback(() => {
-    // TODO: Implement search functionality
-    console.log("Search pressed");
-  }, []);
+    router.push("/(auth)/search-transactions");
+  }, [router]);
 
   const handleFilterPress = useCallback(() => {
     setShowFilterSheet(true);
