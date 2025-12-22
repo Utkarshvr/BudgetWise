@@ -15,6 +15,7 @@ type CategoryActionSheetProps = {
   onClose: () => void;
   onEdit: (category: Category) => void;
   onDelete: (category: Category) => void;
+  onMoveToParent: (category: Category) => void;
 };
 
 export function CategoryActionSheet({
@@ -23,6 +24,7 @@ export function CategoryActionSheet({
   onClose,
   onEdit,
   onDelete,
+  onMoveToParent,
 }: CategoryActionSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["40%"], []);
@@ -75,6 +77,13 @@ export function CategoryActionSheet({
       onClose();
     }
   }, [category, onDelete, onClose]);
+
+  const handleMoveToParent = useCallback(() => {
+    if (category) {
+      onMoveToParent(category);
+      onClose();
+    }
+  }, [category, onMoveToParent, onClose]);
 
   if (!category) return null;
 
@@ -138,6 +147,27 @@ export function CategoryActionSheet({
                 Edit Category
               </Text>
             </TouchableOpacity>
+
+            {/* Only show "Move to Parent" for non-parent categories */}
+            {category.is_parent_category !== true && (
+              <TouchableOpacity
+                onPress={handleMoveToParent}
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: colors.background.DEFAULT },
+                ]}
+              >
+                <MaterialIcons
+                  name="drive-file-move"
+                  size={20}
+                  color={colors.foreground}
+                  style={styles.actionIcon}
+                />
+                <Text style={[styles.actionText, { color: colors.foreground }]}>
+                  Move to Parent
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               onPress={handleDelete}

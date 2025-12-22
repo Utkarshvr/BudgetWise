@@ -6,7 +6,15 @@ import { Transaction } from "@/types/transaction";
 import { getDateRangeForPeriod } from "../utils/dateRange";
 import { getErrorMessage } from "@/utils";
 
-export function useTransactionsData(session: Session | null) {
+type FilterOptions = {
+  accountIds: string[];
+  categoryIds: string[];
+};
+
+export function useTransactionsData(
+  session: Session | null,
+  filters?: FilterOptions
+) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -76,11 +84,40 @@ export function useTransactionsData(session: Session | null) {
     setCurrentPeriodDate(newDate);
   };
 
-  // Group transactions by date
+  // Filter and group transactions by date
   const filteredAndGroupedTransactions = useMemo(() => {
+    // Apply filters
+    let filtered = transactions;
+
+    if (filters) {
+      // Filter by accounts
+      if (filters.accountIds.length > 0) {
+        filtered = filtered.filter((transaction) => {
+          // Check if transaction involves any of the selected accounts
+          const fromAccountMatch =
+            transaction.from_account_id &&
+            filters.accountIds.includes(transaction.from_account_id);
+          const toAccountMatch =
+            transaction.to_account_id &&
+            filters.accountIds.includes(transaction.to_account_id);
+          return fromAccountMatch || toAccountMatch;
+        });
+      }
+
+      // Filter by categories
+      if (filters.categoryIds.length > 0) {
+        filtered = filtered.filter((transaction) => {
+          return (
+            transaction.category_id &&
+            filters.categoryIds.includes(transaction.category_id)
+          );
+        });
+      }
+    }
+
     // Group by date
     const grouped: Record<string, Transaction[]> = {};
-    transactions.forEach((transaction) => {
+    filtered.forEach((transaction) => {
       const dateKey = new Date(transaction.created_at).toDateString();
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
@@ -100,7 +137,7 @@ export function useTransactionsData(session: Session | null) {
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         ),
       }));
-  }, [transactions]);
+  }, [transactions, filters]);
 
   return {
     transactions,

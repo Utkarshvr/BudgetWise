@@ -119,10 +119,16 @@ export interface StatsData {
   currency: string;
 }
 
+type FilterOptions = {
+  accountIds: string[];
+  categoryIds: string[];
+};
+
 export function useStatsData(
   session: Session | null,
   period: DateRangeFilter,
-  referenceDate: Date
+  referenceDate: Date,
+  filters?: FilterOptions
 ) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,9 +187,51 @@ export function useStatsData(
 
   // Process transactions into stats
   const statsData = useMemo((): StatsData => {
+    // Apply filters to transactions before computing stats
+    let filteredTransactions = transactions;
+
+    if (filters) {
+      const { accountIds, categoryIds } = filters;
+
+      // Filter by accounts (transactions involving any selected account)
+      if (accountIds.length > 0) {
+        filteredTransactions = filteredTransactions.filter((t) => {
+          const fromMatch =
+            t.from_account_id && accountIds.includes(t.from_account_id);
+          const toMatch =
+            t.to_account_id && accountIds.includes(t.to_account_id);
+          return fromMatch || toMatch;
+        });
+      }
+
+      // Filter by categories (including "Others" pseudo categories)
+      if (categoryIds.length > 0) {
+        const hasOthersIncome = categoryIds.includes("others_income");
+        const hasOthersExpense = categoryIds.includes("others_expense");
+
+        filteredTransactions = filteredTransactions.filter((t) => {
+          // Transactions without category
+          if (!t.category_id) {
+            if (t.type === "income") {
+              return hasOthersIncome;
+            }
+            if (t.type === "expense") {
+              return hasOthersExpense;
+            }
+            return false;
+          }
+
+          // Normal categories
+          return categoryIds.includes(t.category_id);
+        });
+      }
+    }
+
     // Separate income and expense transactions
-    const incomeTransactions = transactions.filter((t) => t.type === "income");
-    const expenseTransactions = transactions.filter(
+    const incomeTransactions = filteredTransactions.filter(
+      (t) => t.type === "income"
+    );
+    const expenseTransactions = filteredTransactions.filter(
       (t) => t.type === "expense"
     );
 
@@ -249,17 +297,14 @@ export function useStatsData(
     const incomeStats = processCategoryStats(incomeTransactions, true);
     const expenseStats = processCategoryStats(expenseTransactions, false);
 
-    const totalIncome = incomeTransactions.reduce(
-      (sum, t) => sum + t.amount,
-      0
-    );
+    const totalIncome = incomeTransactions.reduce((sum, t) => sum + t.amount, 0);
     const totalExpense = expenseTransactions.reduce(
       (sum, t) => sum + t.amount,
       0
     );
 
     // Get the most common currency (default to INR)
-    const currencies = transactions.map((t) => t.currency || "INR");
+    const currencies = filteredTransactions.map((t) => t.currency || "INR");
     const currencyCounts = currencies.reduce(
       (acc, curr) => {
         acc[curr] = (acc[curr] || 0) + 1;
@@ -279,7 +324,7 @@ export function useStatsData(
       totalExpense,
       currency,
     };
-  }, [transactions]);
+  }, [transactions, filters]);
 
   return {
     statsData,

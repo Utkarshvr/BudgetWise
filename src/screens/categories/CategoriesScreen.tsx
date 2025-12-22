@@ -9,6 +9,7 @@ import { useCategoriesData } from "./hooks/useCategoriesData";
 import { CategoryFormSheet } from "./components/CategoryFormSheet";
 import { CategoryReservationSheet } from "./components/CategoryReservationSheet";
 import { CategoryActionSheet } from "./components/CategoryActionSheet";
+import { CategoryParentSelectSheet } from "./components/CategoryParentSelectSheet";
 import { CategoriesHeader } from "./components/CategoriesHeader";
 import { CategoriesTabs } from "./components/CategoriesTabs";
 import { CategoriesEmptyState } from "./components/CategoriesEmptyState";
@@ -44,6 +45,9 @@ export default function CategoriesScreen() {
   >({});
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [parentSelectSheetVisible, setParentSelectSheetVisible] = useState(false);
+  const [categoryToMove, setCategoryToMove] = useState<Category | null>(null);
+  const [movingCategory, setMovingCategory] = useState(false);
 
   const accountUnreserved = useMemo(() => {
     const map: Record<string, number> = {};
@@ -186,6 +190,7 @@ export default function CategoriesScreen() {
             name: trimmedName,
             emoji: formData.emoji,
             background_color: formData.background_color,
+            parent_id: formData.parent_id || null,
             // Don't update category_type when editing
           })
           .eq("id", editingCategory.id);
@@ -198,6 +203,7 @@ export default function CategoriesScreen() {
           emoji: formData.emoji,
           background_color: formData.background_color,
           category_type: formData.category_type,
+          parent_id: formData.parent_id || null,
         });
 
         if (error) throw error;
@@ -215,6 +221,14 @@ export default function CategoriesScreen() {
   };
 
   const handleManageReservations = (category: Category) => {
+    // Check if this is a parent category
+    if (category.is_parent_category === true) {
+      Alert.alert(
+        "Parent Category",
+        "Parent categories don't hold funds directly. Manage funds for individual child categories instead."
+      );
+      return;
+    }
     setSelectedCategoryForReservation(category);
     setReservationSheetVisible(true);
   };
@@ -233,6 +247,32 @@ export default function CategoriesScreen() {
   const handleShowActions = (category: Category) => {
     setSelectedCategory(category);
     setActionSheetVisible(true);
+  };
+
+  const handleMoveToParent = (category: Category) => {
+    setCategoryToMove(category);
+    setParentSelectSheetVisible(true);
+  };
+
+  const handleMoveCategory = async (parentId: string | null) => {
+    if (!categoryToMove || !session?.user) return;
+    setMovingCategory(true);
+    try {
+      const { error } = await supabase
+        .from("categories")
+        .update({ parent_id: parentId })
+        .eq("id", categoryToMove.id);
+
+      if (error) throw error;
+      setParentSelectSheetVisible(false);
+      setCategoryToMove(null);
+      handleRefresh();
+    } catch (error: any) {
+      const errorMessage = getErrorMessage(error, "Failed to move category");
+      Alert.alert("Error", errorMessage);
+    } finally {
+      setMovingCategory(false);
+    }
   };
 
   if (loading) {
@@ -283,6 +323,7 @@ export default function CategoriesScreen() {
         onClose={() => setFormSheetVisible(false)}
         onSubmit={handleSubmitCategory}
         loading={submitting}
+        allCategories={categories}
       />
 
       <CategoryReservationSheet
@@ -309,6 +350,19 @@ export default function CategoriesScreen() {
         }}
         onEdit={handleEditCategory}
         onDelete={handleDeleteCategory}
+        onMoveToParent={handleMoveToParent}
+      />
+
+      <CategoryParentSelectSheet
+        visible={parentSelectSheetVisible}
+        category={categoryToMove}
+        categories={categories}
+        onClose={() => {
+          setParentSelectSheetVisible(false);
+          setCategoryToMove(null);
+        }}
+        onMove={handleMoveCategory}
+        loading={movingCategory}
       />
     </SafeAreaView>
   );

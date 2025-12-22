@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
+import { useRouter } from "expo-router";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -28,6 +29,7 @@ import { SummarySection } from "./components/SummarySection";
 import { TransactionsList } from "./components/TransactionsList";
 import { EmptyState } from "./components/EmptyState";
 import { TransactionActionSheet } from "./components/TransactionActionSheet";
+import { FilterSheet } from "./components/FilterSheet";
 import { Transaction } from "@/types/transaction";
 import { supabase } from "@/lib";
 import TransactionFormScreen from "./TransactionFormScreen";
@@ -36,10 +38,25 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.4; // 40% of screen width
 
 export default function TransactionsScreen() {
+  const router = useRouter();
   const colors = useThemeColors();
   const typeMeta = buildTypeMeta(colors);
 
   const { session } = useSupabaseSession();
+  
+  // Filter state
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+
+  const filters = useMemo(
+    () => ({
+      accountIds: selectedAccountIds,
+      categoryIds: selectedCategoryIds,
+    }),
+    [selectedAccountIds, selectedCategoryIds]
+  );
+
   const {
     loading,
     refreshing,
@@ -49,7 +66,7 @@ export default function TransactionsScreen() {
     handlePreviousPeriod,
     handleNextPeriod,
     setCurrentPeriodDate,
-  } = useTransactionsData(session);
+  } = useTransactionsData(session, filters);
 
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
@@ -193,6 +210,25 @@ export default function TransactionsScreen() {
     (group) => group.transactions
   );
 
+  const handleFilterApply = useCallback(
+    (accountIds: string[], categoryIds: string[]) => {
+      setSelectedAccountIds(accountIds);
+      setSelectedCategoryIds(categoryIds);
+    },
+    []
+  );
+
+  const handleSearchPress = useCallback(() => {
+    router.push("/(auth)/search-transactions");
+  }, [router]);
+
+  const handleFilterPress = useCallback(() => {
+    setShowFilterSheet(true);
+  }, []);
+
+  const hasActiveFilters =
+    selectedAccountIds.length > 0 || selectedCategoryIds.length > 0;
+
   return (
     <SafeAreaView
       className="flex-1"
@@ -216,6 +252,9 @@ export default function TransactionsScreen() {
             onPrev={handlePreviousPeriod}
             onNext={handleNextPeriod}
             onDateSelect={setCurrentPeriodDate}
+            onSearchPress={handleSearchPress}
+            onFilterPress={handleFilterPress}
+            hasActiveFilters={hasActiveFilters}
           />
 
           <SummarySection
@@ -254,6 +293,16 @@ export default function TransactionsScreen() {
         onClose={handleCloseActionSheet}
         onEdit={handleEditTransaction}
         onDelete={handleDeleteTransaction}
+      />
+
+      <FilterSheet
+        visible={showFilterSheet}
+        colors={colors}
+        selectedAccountIds={selectedAccountIds}
+        selectedCategoryIds={selectedCategoryIds}
+        currentDateRange={currentDateRange}
+        onClose={() => setShowFilterSheet(false)}
+        onApply={handleFilterApply}
       />
 
       {/* Transaction Form Screen (for editing) */}

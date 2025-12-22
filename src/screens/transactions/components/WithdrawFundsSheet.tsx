@@ -31,6 +31,7 @@ type WithdrawFundsSheetProps = {
   reservations: CategoryReservation[];
   requiredAmount: number; // Transaction amount in smallest currency unit
   spendableBalance: number; // Current spendable balance in smallest currency unit
+  selectedCategoryId: string | null; // Category selected for the transaction
   onClose: () => void;
   onWithdrawComplete: (totalWithdrawn: number) => void;
 };
@@ -50,6 +51,7 @@ export function WithdrawFundsSheet({
   reservations,
   requiredAmount,
   spendableBalance,
+  selectedCategoryId,
   onClose,
   onWithdrawComplete,
 }: WithdrawFundsSheetProps) {
@@ -102,11 +104,17 @@ export function WithdrawFundsSheet({
   }, [onClose]);
 
   // Get reservations for this account with category info
+  // Exclude the selected category since we'll use all of its funds automatically
   const accountReservations = useMemo(() => {
     if (!account) return [];
     
     return reservations
-      .filter((r) => r.account_id === account.id && r.reserved_amount > 0)
+      .filter(
+        (r) => 
+          r.account_id === account.id && 
+          r.reserved_amount > 0 &&
+          r.category_id !== selectedCategoryId // Exclude selected category
+      )
       .map((reservation) => {
         const category = categories.find((c) => c.id === reservation.category_id);
         return {
@@ -115,7 +123,7 @@ export function WithdrawFundsSheet({
         };
       })
       .filter((r) => r.category !== null); // Only show reservations with valid categories
-  }, [account, reservations, categories]);
+  }, [account, reservations, categories, selectedCategoryId]);
 
   const handleWithdrawClick = (reservationId: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -187,7 +195,7 @@ export function WithdrawFundsSheet({
     try {
       const { supabase } = await import("@/lib/supabase");
       
-      // Withdraw from each reservation
+      // Withdraw from each reservation and transfer to selected category
       for (const [reservationId, amountStr] of withdrawEntries) {
         const amountNum = parseFloat(amountStr);
         const amountSmallest = Math.round(amountNum * 100);
@@ -195,6 +203,7 @@ export function WithdrawFundsSheet({
         
         if (!reservation) continue;
 
+        // Withdraw from this reservation
         const { error: rpcError } = await supabase.rpc("adjust_category_reservation", {
           p_category_id: reservation.category_id,
           p_account_id: reservation.account_id,
@@ -202,6 +211,17 @@ export function WithdrawFundsSheet({
         });
 
         if (rpcError) throw rpcError;
+
+        // Transfer to selected category if one is selected
+        if (selectedCategoryId && account) {
+          const { error: transferError } = await supabase.rpc("adjust_category_reservation", {
+            p_category_id: selectedCategoryId,
+            p_account_id: account.id,
+            p_amount_delta: amountSmallest, // Add to selected category
+          });
+
+          if (transferError) throw transferError;
+        }
       }
 
       // Success - notify parent with total withdrawn
@@ -238,10 +258,22 @@ export function WithdrawFundsSheet({
   };
 
   const totalWithdrawn = getTotalWithdrawn();
-  // Calculate the actual amount needed (transaction amount - spendable balance)
-  const amountNeeded = Math.max(0, requiredAmount - spendableBalance);
+  
+  // Get reserved amount for selected category (if any)
+  const selectedCategoryReserved = useMemo(() => {
+    if (!selectedCategoryId || !account) return 0;
+    const reservation = reservations.find(
+      (r) => r.category_id === selectedCategoryId && r.account_id === account.id
+    );
+    return reservation?.reserved_amount || 0;
+  }, [selectedCategoryId, account, reservations]);
+
+  // Calculate the actual amount needed
+  // Transaction amount - spendable balance - reserved amount for selected category
+  const amountNeeded = Math.max(0, requiredAmount - spendableBalance - selectedCategoryReserved);
   const transactionAmountFormatted = formatBalance(requiredAmount, account?.currency || "INR");
   const spendableBalanceFormatted = formatBalance(spendableBalance, account?.currency || "INR");
+  const selectedCategoryReservedFormatted = formatBalance(selectedCategoryReserved, account?.currency || "INR");
   const amountNeededFormatted = formatBalance(amountNeeded, account?.currency || "INR");
   const totalWithdrawnFormatted = formatBalance(totalWithdrawn, account?.currency || "INR");
   const remainingNeeded = Math.max(0, amountNeeded - totalWithdrawn);
@@ -285,10 +317,12 @@ export function WithdrawFundsSheet({
         {/* Alert Message */}
         <View className="bg-orange-500/20 border border-orange-500/50 rounded-xl p-3 mb-6">
           <Text className="text-orange-400 text-sm font-medium mb-1">
-            Insufficient Spendable Balance
+            Insufficient Balance
           </Text>
           <Text className="text-neutral-300 text-xs">
-            Your transaction amount exceeds the available spendable balance. Withdraw funds from your category reservations to proceed.
+            {selectedCategoryId 
+              ? "Your transaction amount exceeds the available balance (spendable + selected category reserved). Withdraw funds from other category reservations to transfer to your selected category."
+              : "Your transaction amount exceeds the available spendable balance. Withdraw funds from your category reservations to proceed."}
           </Text>
         </View>
 
@@ -306,6 +340,14 @@ export function WithdrawFundsSheet({
               {spendableBalanceFormatted}
             </Text>
           </View>
+          {selectedCategoryId && selectedCategoryReserved > 0 && (
+            <View className="flex-row justify-between items-center mb-2">
+              <Text className="text-neutral-400 text-xs">Selected Category Reserved</Text>
+              <Text className="text-purple-400 text-base font-semibold">
+                {selectedCategoryReservedFormatted}
+              </Text>
+            </View>
+          )}
           <View className="h-px bg-neutral-700 my-2" />
           <View className="flex-row justify-between items-center mb-2">
             <Text className="text-neutral-400 text-xs">Amount Needed</Text>
@@ -454,7 +496,9 @@ export function WithdrawFundsSheet({
 
         <View className="bg-neutral-800/50 rounded-xl p-3 mt-4">
           <Text className="text-neutral-400 text-xs text-center">
-            💡 Tip: Withdraw funds from your category reservations to make them available for this transaction.
+            💡 Tip: {selectedCategoryId 
+              ? "Withdraw funds from other category reservations. They will be transferred to your selected category and used for this transaction."
+              : "Withdraw funds from your category reservations to make them available for this transaction."}
           </Text>
         </View>
       </BottomSheetScrollView>
