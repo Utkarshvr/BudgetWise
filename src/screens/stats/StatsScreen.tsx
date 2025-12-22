@@ -15,11 +15,15 @@ import { PieChart } from "react-native-gifted-charts";
 import { useSupabaseSession } from "@/hooks";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
 import { useStatsData } from "./hooks/useStatsData";
-import { DateRangeFilter } from "@/screens/transactions/utils/dateRange";
+import {
+  DateRangeFilter,
+  getDateRangeForPeriod,
+} from "@/screens/transactions/utils/dateRange";
 import { formatAmount } from "@/screens/transactions/utils/formatting";
 import { CategoryStat } from "./hooks/useStatsData";
 import { Text as SvgText } from "react-native-svg";
 import { MonthYearPickerModal } from "@/screens/transactions/components/MonthYearPickerModal";
+import { FilterSheet } from "@/screens/transactions/components/FilterSheet";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -35,12 +39,32 @@ export default function StatsScreen() {
   );
   const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+
+  const filters = useMemo(
+    () => ({
+      accountIds: selectedAccountIds,
+      categoryIds: selectedCategoryIds,
+    }),
+    [selectedAccountIds, selectedCategoryIds]
+  );
 
   const { statsData, loading, refreshing, handleRefresh } = useStatsData(
     session,
     period,
-    referenceDate
+    referenceDate,
+    filters
   );
+
+  const currentDateRange = useMemo(
+    () => getDateRangeForPeriod(period, referenceDate),
+    [period, referenceDate]
+  );
+
+  const hasActiveFilters =
+    selectedAccountIds.length > 0 || selectedCategoryIds.length > 0;
 
   const currentStats = useMemo(
     () =>
@@ -182,83 +206,119 @@ export default function StatsScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Period Selector with Dropdown */}
-            <View style={{ position: "relative", zIndex: 1000 }}>
+            {/* Period Selector with Dropdown + Filter Icon */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                position: "relative",
+                zIndex: 1000,
+              }}
+            >
+              <View style={{ position: "relative" }}>
+                <TouchableOpacity
+                  onPress={() => setShowPeriodDropdown(!showPeriodDropdown)}
+                  className="flex-row items-center gap-1 px-3 py-1.5 rounded-md"
+                  style={{ backgroundColor: colors.background.subtle }}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    className="text-sm font-medium"
+                    style={{ color: colors.foreground }}
+                  >
+                    {period === "month" ? "Monthly" : "Annually"}
+                  </Text>
+                  <MaterialIcons
+                    name={
+                      showPeriodDropdown ? "arrow-drop-up" : "arrow-drop-down"
+                    }
+                    size={20}
+                    color={colors.foreground}
+                  />
+                </TouchableOpacity>
+
+                {/* Dropdown */}
+                {showPeriodDropdown && (
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      right: 0,
+                      marginTop: 4,
+                      backgroundColor: colors.card.DEFAULT,
+                      borderRadius: 8,
+                      paddingVertical: 4,
+                      minWidth: 140,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      shadowColor: colors.shadow,
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.25,
+                      shadowRadius: 4,
+                      elevation: 10,
+                      zIndex: 1001,
+                    }}
+                    onStartShouldSetResponder={() => true}
+                  >
+                    {periodOptions.map((option) => (
+                      <TouchableOpacity
+                        key={option.value}
+                        onPress={() => {
+                          setPeriod(option.value);
+                          setShowPeriodDropdown(false);
+                        }}
+                        className="py-3 px-4"
+                        style={{
+                          backgroundColor:
+                            period === option.value
+                              ? colors.primary.soft
+                              : "transparent",
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          className="text-sm font-medium"
+                          style={{
+                            color:
+                              period === option.value
+                                ? colors.primary.DEFAULT
+                                : colors.foreground,
+                          }}
+                        >
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {/* Filter Icon */}
               <TouchableOpacity
-                onPress={() => setShowPeriodDropdown(!showPeriodDropdown)}
-                className="flex-row items-center gap-1 px-3 py-1.5 rounded-md"
-                style={{ backgroundColor: colors.background.subtle }}
+                onPress={() => setShowFilterSheet(true)}
+                style={{ padding: 6, position: "relative" }}
                 activeOpacity={0.7}
               >
-                <Text
-                  className="text-sm font-medium"
-                  style={{ color: colors.foreground }}
-                >
-                  {period === "month" ? "Monthly" : "Annually"}
-                </Text>
                 <MaterialIcons
-                  name={
-                    showPeriodDropdown ? "arrow-drop-up" : "arrow-drop-down"
-                  }
-                  size={20}
-                  color={colors.foreground}
+                  name="filter-alt"
+                  size={22}
+                  color={hasActiveFilters ? colors.primary.DEFAULT : colors.foreground}
                 />
+                {hasActiveFilters && (
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 6,
+                      right: 6,
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: colors.primary.DEFAULT,
+                    }}
+                  />
+                )}
               </TouchableOpacity>
-
-              {/* Dropdown */}
-              {showPeriodDropdown && (
-                <View
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    right: 0,
-                    marginTop: 4,
-                    backgroundColor: colors.card.DEFAULT,
-                    borderRadius: 8,
-                    paddingVertical: 4,
-                    minWidth: 140,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    shadowColor: colors.shadow,
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.25,
-                    shadowRadius: 4,
-                    elevation: 10,
-                    zIndex: 1001,
-                  }}
-                  onStartShouldSetResponder={() => true}
-                >
-                  {periodOptions.map((option) => (
-                    <TouchableOpacity
-                      key={option.value}
-                      onPress={() => {
-                        setPeriod(option.value);
-                        setShowPeriodDropdown(false);
-                      }}
-                      className="py-3 px-4"
-                      style={{
-                        backgroundColor:
-                          period === option.value
-                            ? colors.primary.soft
-                            : "transparent",
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        className="text-sm font-medium"
-                        style={{
-                          color:
-                            period === option.value
-                              ? colors.primary.DEFAULT
-                              : colors.foreground,
-                        }}
-                      >
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
             </View>
           </View>
 
@@ -419,6 +479,20 @@ export default function StatsScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Filter Sheet */}
+      <FilterSheet
+        visible={showFilterSheet}
+        colors={colors}
+        selectedAccountIds={selectedAccountIds}
+        selectedCategoryIds={selectedCategoryIds}
+        currentDateRange={currentDateRange}
+        onClose={() => setShowFilterSheet(false)}
+        onApply={(accountIds, categoryIds) => {
+          setSelectedAccountIds(accountIds);
+          setSelectedCategoryIds(categoryIds);
+        }}
+      />
 
       {/* Month/Year Picker Modal (only shown when period is month) */}
       {period === "month" && (
