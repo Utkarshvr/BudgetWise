@@ -188,13 +188,30 @@ export function FilterSheet({
     [categories]
   );
 
-  // Calculate totals for each category
+  // Calculate totals for each category (filtered by selected accounts if any)
   const categoryTotals = useMemo(() => {
     const totals: Record<string, number> = {};
     let othersIncome = 0;
     let othersExpense = 0;
     
-    transactions.forEach((transaction) => {
+    // Filter transactions by selected accounts if any are selected
+    const filteredTransactions = transactions.filter((transaction) => {
+      if (tempSelectedAccountIds.length === 0) {
+        return true; // No account filter, include all
+      }
+      
+      // Check if transaction involves any selected account
+      const fromAccountMatch =
+        transaction.from_account_id &&
+        tempSelectedAccountIds.includes(transaction.from_account_id);
+      const toAccountMatch =
+        transaction.to_account_id &&
+        tempSelectedAccountIds.includes(transaction.to_account_id);
+      
+      return fromAccountMatch || toAccountMatch;
+    });
+    
+    filteredTransactions.forEach((transaction) => {
       if (transaction.category_id) {
         const current = totals[transaction.category_id] || 0;
         if (transaction.type === "income" || transaction.type === "expense") {
@@ -219,7 +236,7 @@ export function FilterSheet({
     }
     
     return totals;
-  }, [transactions]);
+  }, [transactions, tempSelectedAccountIds]);
 
   // Calculate totals for each account (income and expense separately)
   const accountTotals = useMemo(() => {
@@ -929,9 +946,15 @@ export function FilterSheet({
                     ).map((category) => {
                     const isSelected = tempSelectedCategoryIds.includes(category.id);
                     const total = categoryTotals[category.id] || 0;
-                    const currency =
-                      transactions.find((t) => t.category_id === category.id)
-                        ?.currency || "INR";
+                    // Find currency from filtered transactions (by account if selected)
+                    const filteredForCurrency = tempSelectedAccountIds.length > 0
+                      ? transactions.filter((t) => {
+                          const fromMatch = t.from_account_id && tempSelectedAccountIds.includes(t.from_account_id);
+                          const toMatch = t.to_account_id && tempSelectedAccountIds.includes(t.to_account_id);
+                          return (fromMatch || toMatch) && t.category_id === category.id;
+                        })
+                      : transactions.filter((t) => t.category_id === category.id);
+                    const currency = filteredForCurrency[0]?.currency || "INR";
                     return (
                       <TouchableOpacity
                         key={category.id}
@@ -1015,13 +1038,23 @@ export function FilterSheet({
                     if (!hasOthersTotal) return null;
                     
                     const isSelected = tempSelectedCategoryIds.includes(othersId);
-                    const currency =
-                      transactions.find(
-                        (t) =>
-                          !t.category_id &&
-                          ((activeTab === "income" && t.type === "income") ||
-                            (activeTab === "expense" && t.type === "expense"))
-                      )?.currency || "INR";
+                    // Find currency from filtered transactions (by account if selected)
+                    const filteredForCurrency = tempSelectedAccountIds.length > 0
+                      ? transactions.filter((t) => {
+                          const fromMatch = t.from_account_id && tempSelectedAccountIds.includes(t.from_account_id);
+                          const toMatch = t.to_account_id && tempSelectedAccountIds.includes(t.to_account_id);
+                          return (fromMatch || toMatch) && 
+                            !t.category_id &&
+                            ((activeTab === "income" && t.type === "income") ||
+                             (activeTab === "expense" && t.type === "expense"));
+                        })
+                      : transactions.filter(
+                          (t) =>
+                            !t.category_id &&
+                            ((activeTab === "income" && t.type === "income") ||
+                             (activeTab === "expense" && t.type === "expense"))
+                        );
+                    const currency = filteredForCurrency[0]?.currency || "INR";
                     
                     return (
                       <TouchableOpacity

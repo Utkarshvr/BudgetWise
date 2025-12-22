@@ -137,10 +137,10 @@ export default function StatsScreen() {
         <View className="px-4 pt-4 pb-2" style={{ position: "relative" }}>
           <View className="flex-row items-center justify-between mb-4">
             {/* Period Navigation */}
-            <View className="flex-row items-center gap-2">
+            <View className="flex-row items-center">
               <TouchableOpacity
                 onPress={handlePreviousPeriod}
-                className="p-2"
+                className="pr-1 py-1"
                 activeOpacity={0.7}
               >
                 <MaterialIcons
@@ -171,7 +171,7 @@ export default function StatsScreen() {
               )}
               <TouchableOpacity
                 onPress={handleNextPeriod}
-                className="p-2"
+                className="pl-1 py-1"
                 activeOpacity={0.7}
               >
                 <MaterialIcons

@@ -49,7 +49,7 @@ export function TransactionsHeader({
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowDatePicker(true)}
-              className="px-3 py-1"
+              className="px-1 py-1"
             >
               <Text
                 className="text-base font-bold text-center text-foreground"
@@ -88,7 +88,7 @@ export function TransactionsHeader({
               style={{ position: "relative" }}
             >
               <MaterialIcons
-                name="filter-list"
+                name="filter-alt"
                 size={24}
                 color={hasActiveFilters ? colors.primary.DEFAULT : colors.foreground}
               />
@@ -107,7 +107,6 @@ export function TransactionsHeader({
               )}
             </TouchableOpacity>
           )}
-          <LogoIcon />
         </View>
       </View>
 
