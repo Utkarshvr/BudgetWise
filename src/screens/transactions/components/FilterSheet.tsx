@@ -1088,7 +1088,7 @@ export function FilterSheet({
                               width: 32,
                               height: 32,
                               borderRadius: 8,
-                              backgroundColor: category.background_color,
+                              backgroundColor: colors.categoryBackgroundColor,
                               alignItems: "center",
                               justifyContent: "center",
                               marginRight: 12,
@@ -1189,7 +1189,7 @@ export function FilterSheet({
                             borderWidth: 2,
                             borderColor: isSelected
                               ? colors.primary.DEFAULT
-                              : colors.border,
+                              : colors.muted.foreground,
                             borderRadius: 4,
                             backgroundColor: isSelected
                               ? colors.primary.DEFAULT
@@ -1203,7 +1203,7 @@ export function FilterSheet({
                             <MaterialIcons
                               name="check"
                               size={14}
-                              color="#ffffff"
+                              color={colors.white}
                             />
                           )}
                         </View>
