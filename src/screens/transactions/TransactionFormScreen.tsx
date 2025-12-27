@@ -1294,7 +1294,7 @@ export default function TransactionFormScreen({
                           borderColor:
                             selectedCategory?.id === category.id
                               ? colors.primary.DEFAULT
-                              : colors.border,
+                              : colors.muted.foreground,
                           backgroundColor:
                             selectedCategory?.id === category.id
                               ? colors.primary.DEFAULT

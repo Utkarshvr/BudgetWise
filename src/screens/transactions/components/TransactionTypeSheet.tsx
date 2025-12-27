@@ -93,24 +93,44 @@ export function TransactionTypeSheet({
           Transaction type
         </Text>
 
-        {TRANSACTION_TYPES.map((type) => (
-          <TouchableOpacity
-            key={type.value}
-            onPress={() => handleSelect(type.value)}
-            style={styles.typeOption}
-          >
-            <Text style={[styles.typeLabel, { color: colors.foreground }]}>
-              {type.label}
-            </Text>
-            {selectedType === type.value && (
-              <MaterialIcons
-                name="check-circle"
-                size={24}
-                color={colors.primary.DEFAULT}
-              />
-            )}
-          </TouchableOpacity>
-        ))}
+        {TRANSACTION_TYPES.map((type) => {
+          const isSelected = selectedType === type.value;
+          return (
+            <TouchableOpacity
+              key={type.value}
+              onPress={() => handleSelect(type.value)}
+              style={[
+                styles.typeOption,
+                {
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                  paddingBottom: 16,
+                },
+              ]}
+            >
+              <Text style={[styles.typeLabel, { color: colors.foreground }]}>
+                {type.label}
+              </Text>
+              {isSelected ? (
+                <MaterialIcons
+                  name="check-circle"
+                  size={24}
+                  color={colors.primary.DEFAULT}
+                />
+              ) : (
+                <View
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    borderWidth: 2,
+                    borderColor: colors.border,
+                  }}
+                />
+              )}
+            </TouchableOpacity>
+          );
+        })}
 
         <TouchableOpacity
           onPress={onClose}

@@ -377,7 +377,12 @@ export function CategoryFormSheet({
                 >
                   <Text
                     className="text-sm font-medium text-center"
-                    style={{ color: colors.white }}
+                    style={{
+                      color:
+                        formData.category_type === "income"
+                          ? colors.white
+                          : colors.foreground,
+                    }}
                   >
                     Income
                   </Text>
@@ -397,7 +402,12 @@ export function CategoryFormSheet({
                 >
                   <Text
                     className="text-sm font-medium text-center"
-                    style={{ color: colors.white }}
+                    style={{
+                      color:
+                        formData.category_type === "expense"
+                          ? colors.white
+                          : colors.foreground,
+                    }}
                   >
                     Expense
                   </Text>

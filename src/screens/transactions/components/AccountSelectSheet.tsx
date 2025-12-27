@@ -117,7 +117,8 @@ export function AccountSelectSheet({
               <TouchableOpacity
                 key={account.id}
                 onPress={() => handleSelect(account)}
-                className="flex-row justify-between items-center py-4 px-1 border-b border-neutral-700"
+                className="flex-row justify-between items-center py-4 px-1 border-b"
+                style={{ borderBottomColor: colors.border }}
               >
                 <View className="flex-row items-center flex-1">
                   <View
@@ -127,26 +128,35 @@ export function AccountSelectSheet({
                     <MaterialIcons
                       name={ACCOUNT_TYPE_ICONS[account.type] as any}
                       size={20}
-                      color="white"
+                      color={colors.white}
                     />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-lg font-semibold text-white mb-2">
+                    <Text
+                      className="text-lg font-semibold mb-2"
+                      style={{ color: colors.foreground }}
+                    >
                       {account.name}
                     </Text>
-                    <View className="bg-background-subtle px-2 py-1 rounded-lg border border-border self-start">
+                    <View
+                      className="px-2 py-1 rounded-lg border self-start"
+                      style={{
+                        backgroundColor: colors.background.subtle,
+                        borderColor: colors.border,
+                      }}
+                    >
                       <Text className="text-sm font-medium">
-                        <Text className="text-foreground">
+                        <Text style={{ color: colors.foreground }}>
                           {formatBalance(totalBalance, account.currency)}
                         </Text>
-                        <Text className="text-neutral-500"> | </Text>
-                        <Text className="text-primary">
+                        <Text style={{ color: colors.muted.foreground }}> | </Text>
+                        <Text style={{ color: colors.primary.DEFAULT }}>
                           {formatBalance(spendable, account.currency)}
                         </Text>
                         {/* {reservedTotal > 0 && (
                           <>
-                            <Text className="text-neutral-500"> | </Text>
-                            <Text className="text-yellow-400">
+                            <Text style={{ color: colors.muted.foreground }}> | </Text>
+                            <Text style={{ color: colors.warning.DEFAULT }}>
                               {formatBalance(reservedTotal, account.currency)}
                             </Text>
                           </>
@@ -155,8 +165,22 @@ export function AccountSelectSheet({
                     </View>
                   </View>
                 </View>
-                {selectedAccountId === account.id && (
-                  <MaterialIcons name="check-circle" size={24} color="#3b82f6" />
+                {selectedAccountId === account.id ? (
+                  <MaterialIcons
+                    name="check-circle"
+                    size={24}
+                    color={colors.primary.DEFAULT}
+                  />
+                ) : (
+                  <View
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      borderWidth: 2,
+                      borderColor: colors.border,
+                    }}
+                  />
                 )}
               </TouchableOpacity>
             );

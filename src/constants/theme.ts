@@ -137,7 +137,7 @@ const lightColors = {
   },
 
   // Generic borders / inputs / focus
-  border: "#e5e7eb",
+  border: "#ddd",
   input: "#ffffff",
   ring: "#22c55e",
 

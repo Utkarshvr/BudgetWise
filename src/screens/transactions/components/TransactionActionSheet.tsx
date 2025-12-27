@@ -200,7 +200,7 @@ export function TransactionActionSheet({
 
           {/* Details Section */}
           <View style={styles.detailsContainer}>
-            <View style={styles.detailRow}>
+            <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
               <Text style={[styles.detailLabel, { color: colors.foreground }]}>
                 Date
               </Text>
@@ -211,7 +211,7 @@ export function TransactionActionSheet({
               </Text>
             </View>
 
-            <View style={styles.detailRow}>
+            <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
               <Text style={[styles.detailLabel, { color: colors.foreground }]}>
                 Category
               </Text>
@@ -224,7 +224,7 @@ export function TransactionActionSheet({
 
             {transaction.type === "transfer" ? (
               <>
-                <View style={styles.detailRow}>
+                <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
                   <Text
                     style={[styles.detailLabel, { color: colors.foreground }]}
                   >
@@ -239,7 +239,7 @@ export function TransactionActionSheet({
                     {transaction.from_account?.name || "Unknown"}
                   </Text>
                 </View>
-                <View style={styles.detailRow}>
+                <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
                   <Text
                     style={[styles.detailLabel, { color: colors.foreground }]}
                   >
@@ -256,7 +256,7 @@ export function TransactionActionSheet({
                 </View>
               </>
             ) : (
-              <View style={styles.detailRow}>
+              <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
                 <Text
                   style={[styles.detailLabel, { color: colors.foreground }]}
                 >
@@ -359,7 +359,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.1)",
   },
   detailLabel: {
     fontSize: 16,

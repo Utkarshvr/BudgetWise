@@ -1065,7 +1065,7 @@ export function FilterSheet({
                               borderWidth: 2,
                               borderColor: isSelected
                                 ? colors.primary.DEFAULT
-                                : colors.border,
+                                : colors.muted.foreground,
                               borderRadius: 4,
                               backgroundColor: isSelected
                                 ? colors.primary.DEFAULT
