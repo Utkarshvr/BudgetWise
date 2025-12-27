@@ -400,7 +400,13 @@ export default function StatsScreen() {
                 <View className="items-center justify-center">
                   {/* <Text className="text-2xl font-bold">Total</Text> */}
                   <Text
-                    className={`text-base font-bold ${selectedType === "income" ? colors.transaction.income.amountClass : colors.transaction.expense.amountClass}`}
+                    className="text-base font-bold"
+                    style={{
+                      color:
+                        selectedType === "income"
+                          ? colors.primary.DEFAULT
+                          : colors.destructive.DEFAULT,
+                    }}
                   >
                     {formatAmount(totalAmount, statsData.currency)}
                   </Text>
@@ -460,7 +466,7 @@ export default function StatsScreen() {
             </Text> */}
             <View
               style={{
-                backgroundColor: "#222",
+                backgroundColor: colors.card.DEFAULT,
                 width: "100%",
               }}
             >
@@ -542,7 +548,10 @@ function CategoryListItem({
           className="size-8 rounded-md items-center justify-center"
           style={{ backgroundColor: stat.categoryColor }}
         >
-          <Text className="text-xs font-bold text-white">
+          <Text
+            className="text-xs font-bold"
+            style={{ color: colors.white }}
+          >
             {Math.round(stat.percentage)}%
           </Text>
         </View>
@@ -562,7 +571,13 @@ function CategoryListItem({
 
       {/* Amount */}
       <Text
-        className={`text-base font-semibold ml-2 ${selectedType === "income" ? colors.transaction.income.amountClass : colors.transaction.expense.amountClass}`}
+        className="text-base font-semibold ml-2"
+        style={{
+          color:
+            selectedType === "income"
+              ? colors.primary.DEFAULT
+              : colors.destructive.DEFAULT,
+        }}
       >
         {formatAmount(stat.totalAmount, currency)}
       </Text>
