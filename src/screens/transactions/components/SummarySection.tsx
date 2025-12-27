@@ -1,5 +1,6 @@
 import { Text, View } from "react-native";
 import { useMemo } from "react";
+import { useColorScheme } from "react-native";
 import { type ThemeColors } from "@/constants/theme";
 import { type Transaction } from "@/types/transaction";
 import { formatAmount } from "../utils/formatting";
@@ -15,6 +16,9 @@ export function SummarySection({
   colors,
   loading = false,
 }: SummarySectionProps) {
+  const colorScheme = useColorScheme();
+  const isLightMode = colorScheme === "light";
+  
   // Calculate income and expense totals
   const { incomeTotal, expenseTotal, currency, total } = useMemo(() => {
     // Show 0 when loading
@@ -53,8 +57,17 @@ export function SummarySection({
     };
   }, [filteredTransactions, loading]);
 
+  // Use a darker border color in light mode for better visibility
+  const borderColor = isLightMode ? "#d1d5db" : colors.border; // neutral-300 for light mode
+
   return (
-    <View className="py-2 bg-background-subtle flex-row items-center justify-center border-b border-b-border">
+    <View
+      className="py-2 flex-row items-center justify-center border-b"
+      style={{
+        backgroundColor: colors.background.subtle,
+        borderBottomColor: borderColor,
+      }}
+    >
       <View className="flex-1">
         <Text
           className="text-center text-sm mb-1"

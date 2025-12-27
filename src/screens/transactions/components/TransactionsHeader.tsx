@@ -52,8 +52,8 @@ export function TransactionsHeader({
               className="px-1 py-1"
             >
               <Text
-                className="text-base font-bold text-center text-foreground"
-                // style={{ color: colors.foreground }}
+                className="text-base font-bold text-center"
+                style={{ color: colors.foreground }}
               >
                 {formatDateRange(
                   currentDateRange.start,

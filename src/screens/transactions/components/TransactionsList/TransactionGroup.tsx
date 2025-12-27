@@ -47,7 +47,7 @@ export function TransactionGroup({
       >
         <Text
           className="text-base font-bold"
-          style={{ color: colors.muted.foreground }}
+          style={{ color: colors.foreground }}
         >
           {formatDateHeader(group.date)}
         </Text>

@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { View, Text, TouchableOpacity, Modal } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useThemeColors, type ThemeColors } from "@/constants/theme";
 
 type AmountInputScreenProps = {
   visible: boolean;
@@ -13,6 +14,8 @@ export default function AmountInputScreen({
   onClose,
   onContinue,
 }: AmountInputScreenProps) {
+  const colors = useThemeColors();
+  
   // Integer and decimal parts managed separately
   const [integerPart, setIntegerPart] = useState("0"); // e.g. "123"
   const [hasDecimal, setHasDecimal] = useState(false);
@@ -104,11 +107,18 @@ export default function AmountInputScreen({
       presentationStyle="fullScreen"
       onRequestClose={handleClose}
     >
-      <View className="flex-1 bg-black">
+      <View
+        className="flex-1"
+        style={{ backgroundColor: colors.background.DEFAULT }}
+      >
         {/* Header */}
         <View className="flex-row items-center justify-end px-6 pt-14 pb-6">
           <TouchableOpacity onPress={handleClose}>
-            <MaterialIcons name="close" size={32} color="white" />
+            <MaterialIcons
+              name="close"
+              size={32}
+              color={colors.foreground}
+            />
           </TouchableOpacity>
         </View>
 
@@ -116,11 +126,12 @@ export default function AmountInputScreen({
         <View className="flex-1 items-center justify-center px-6">
           <Text className="text-7xl font-bold">
             <Text
-              className={
-                integerPart === "0" && !hasDecimal
-                  ? "text-neutral-500"
-                  : "text-white"
-              }
+              style={{
+                color:
+                  integerPart === "0" && !hasDecimal
+                    ? colors.muted.foreground
+                    : colors.foreground,
+              }}
             >
               ₹{/* Integer part */}
               {integerPart}
@@ -128,20 +139,26 @@ export default function AmountInputScreen({
             {/* Decimal part, only after user taps "." */}
             {hasDecimal && (
               <>
-                <Text className="text-white">.</Text>
+                <Text style={{ color: colors.foreground }}>.</Text>
                 {/* first decimal digit */}
                 <Text
-                  className={
-                    decimalPart.length >= 1 ? "text-white" : "text-neutral-500"
-                  }
+                  style={{
+                    color:
+                      decimalPart.length >= 1
+                        ? colors.foreground
+                        : colors.muted.foreground,
+                  }}
                 >
                   {decimalPart[0] ?? "0"}
                 </Text>
                 {/* second decimal digit */}
                 <Text
-                  className={
-                    decimalPart.length === 2 ? "text-white" : "text-neutral-500"
-                  }
+                  style={{
+                    color:
+                      decimalPart.length === 2
+                        ? colors.foreground
+                        : colors.muted.foreground,
+                  }}
                 >
                   {decimalPart[1] ?? "0"}
                 </Text>
@@ -153,41 +170,97 @@ export default function AmountInputScreen({
         {/* Custom Numpad */}
         <View className="pb-8 px-6">
           <View className="flex-row justify-between">
-            <NumpadButton text="1" onPress={() => handleNumberPress("1")} />
-            <NumpadButton text="2" onPress={() => handleNumberPress("2")} />
-            <NumpadButton text="3" onPress={() => handleNumberPress("3")} />
+            <NumpadButton
+              text="1"
+              colors={colors}
+              onPress={() => handleNumberPress("1")}
+            />
+            <NumpadButton
+              text="2"
+              colors={colors}
+              onPress={() => handleNumberPress("2")}
+            />
+            <NumpadButton
+              text="3"
+              colors={colors}
+              onPress={() => handleNumberPress("3")}
+            />
           </View>
 
           <View className="flex-row justify-between">
-            <NumpadButton text="4" onPress={() => handleNumberPress("4")} />
-            <NumpadButton text="5" onPress={() => handleNumberPress("5")} />
-            <NumpadButton text="6" onPress={() => handleNumberPress("6")} />
+            <NumpadButton
+              text="4"
+              colors={colors}
+              onPress={() => handleNumberPress("4")}
+            />
+            <NumpadButton
+              text="5"
+              colors={colors}
+              onPress={() => handleNumberPress("5")}
+            />
+            <NumpadButton
+              text="6"
+              colors={colors}
+              onPress={() => handleNumberPress("6")}
+            />
           </View>
 
           <View className="flex-row justify-between">
-            <NumpadButton text="7" onPress={() => handleNumberPress("7")} />
-            <NumpadButton text="8" onPress={() => handleNumberPress("8")} />
-            <NumpadButton text="9" onPress={() => handleNumberPress("9")} />
+            <NumpadButton
+              text="7"
+              colors={colors}
+              onPress={() => handleNumberPress("7")}
+            />
+            <NumpadButton
+              text="8"
+              colors={colors}
+              onPress={() => handleNumberPress("8")}
+            />
+            <NumpadButton
+              text="9"
+              colors={colors}
+              onPress={() => handleNumberPress("9")}
+            />
           </View>
 
           <View className="flex-row justify-between mb-4">
-            <NumpadButton text="." onPress={handleDecimal} />
-            <NumpadButton text="0" onPress={() => handleNumberPress("0")} />
-            <NumpadButton icon="backspace" onPress={handleBackspace} />
+            <NumpadButton
+              text="."
+              colors={colors}
+              onPress={handleDecimal}
+            />
+            <NumpadButton
+              text="0"
+              colors={colors}
+              onPress={() => handleNumberPress("0")}
+            />
+            <NumpadButton
+              icon="backspace"
+              colors={colors}
+              onPress={handleBackspace}
+            />
           </View>
 
           {/* Continue Button */}
           <TouchableOpacity
             onPress={handleContinue}
             disabled={numericAmount <= 0}
-            className={`rounded-full py-4 ${
-              numericAmount > 0 ? "bg-white" : "bg-neutral-800"
-            }`}
+            className="rounded-full py-4"
+            style={{
+              backgroundColor:
+                numericAmount > 0
+                  ? colors.primary.DEFAULT
+                  : colors.background.subtle,
+            }}
           >
             <Text
-              className={`text-center text-lg font-semibold ${
-                numericAmount > 0 ? "text-black" : "text-neutral-500"
-              }`}
+              className="text-center text-lg font-semibold"
+              style={{
+                color:
+                  numericAmount > 0
+                    ? colors.white
+                    : colors.muted.foreground,
+              }}
             >
               Continue
             </Text>
@@ -201,10 +274,16 @@ export default function AmountInputScreen({
 type NumpadButtonProps = {
   text?: string;
   icon?: keyof typeof MaterialIcons.glyphMap;
+  colors: ThemeColors;
   onPress: () => void;
 };
 
-function NumpadButton({ text, icon, onPress }: NumpadButtonProps) {
+function NumpadButton({
+  text,
+  icon,
+  colors,
+  onPress,
+}: NumpadButtonProps) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -212,9 +291,18 @@ function NumpadButton({ text, icon, onPress }: NumpadButtonProps) {
       activeOpacity={0.6}
     >
       {icon ? (
-        <MaterialIcons name={icon} size={28} color="white" />
+        <MaterialIcons
+          name={icon}
+          size={28}
+          color={colors.foreground}
+        />
       ) : (
-        <Text className="text-white text-3xl font-normal">{text}</Text>
+        <Text
+          className="text-3xl font-normal"
+          style={{ color: colors.foreground }}
+        >
+          {text}
+        </Text>
       )}
     </TouchableOpacity>
   );

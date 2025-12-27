@@ -87,7 +87,10 @@ export function DateRangeFilterBar({
           />
         </TouchableOpacity>
       </View>
-      <View className="flex-row items-center bg-background-subtle px-2 py-1 rounded-md">
+      <View
+        className="flex-row items-center px-2 py-1 rounded-md"
+        style={{ backgroundColor: colors.background.subtle }}
+      >
         <Text className="text-sm" style={{ color: colors.muted.foreground }}>
           <Text
             className={`${colors.transaction.income.amountClass} font-semibold`}
