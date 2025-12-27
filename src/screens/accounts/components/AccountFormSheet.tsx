@@ -8,6 +8,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { Account, AccountFormData, AccountType } from "@/types/account";
 import { PrimaryButton } from "@/components/ui";
+import { useThemeColors } from "@/constants/theme";
 
 type AccountFormSheetProps = {
   visible: boolean;
@@ -31,6 +32,7 @@ export function AccountFormSheet({
   onSubmit,
   loading = false,
 }: AccountFormSheetProps) {
+  const colors = useThemeColors();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["70%", "95%"], []);
 
@@ -159,8 +161,8 @@ export function AccountFormSheet({
       onChange={handleSheetChanges}
       onDismiss={handleDismiss}
       enablePanDownToClose
-      backgroundStyle={{ backgroundColor: "#171717" }}
-      handleIndicatorStyle={{ backgroundColor: "#525252" }}
+      backgroundStyle={{ backgroundColor: colors.card.DEFAULT }}
+      handleIndicatorStyle={{ backgroundColor: colors.border }}
       backdropComponent={renderBackdrop}
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
@@ -182,11 +184,21 @@ export function AccountFormSheet({
             marginBottom: 24,
           }}
         >
-          <Text style={{ fontSize: 24, fontWeight: "bold", color: "#ffffff" }}>
+          <Text
+            style={{
+              fontSize: 24,
+              fontWeight: "bold",
+              color: colors.foreground,
+            }}
+          >
             {account ? "Edit Account" : "Add Account"}
           </Text>
           <TouchableOpacity onPress={onClose}>
-            <MaterialIcons name="close" size={24} color="white" />
+            <MaterialIcons
+              name="close"
+              size={24}
+              color={colors.foreground}
+            />
           </TouchableOpacity>
         </View>
 
@@ -196,7 +208,7 @@ export function AccountFormSheet({
             style={{
               fontSize: 14,
               fontWeight: "500",
-              color: "#d4d4d4",
+              color: colors.muted.foreground,
               marginBottom: 8,
             }}
           >
@@ -210,18 +222,24 @@ export function AccountFormSheet({
               nameValueRef.current = text;
             }}
             placeholder="e.g., UBOI, Cash Wallet"
-            placeholderTextColor="#6b7280"
+            placeholderTextColor={colors.muted.foreground}
             style={{
-              backgroundColor: "#262626",
+              backgroundColor: colors.background.subtle,
               borderRadius: 12,
               paddingHorizontal: 16,
               paddingVertical: 12,
-              color: "#ffffff",
+              color: colors.foreground,
               fontSize: 16,
             }}
           />
           {errors.name && (
-            <Text style={{ color: "#ef4444", fontSize: 14, marginTop: 4 }}>
+            <Text
+              style={{
+                color: colors.destructive.DEFAULT,
+                fontSize: 14,
+                marginTop: 4,
+              }}
+            >
               {errors.name}
             </Text>
           )}
@@ -233,7 +251,7 @@ export function AccountFormSheet({
             style={{
               fontSize: 14,
               fontWeight: "500",
-              color: "#d4d4d4",
+              color: colors.muted.foreground,
               marginBottom: 8,
             }}
           >
@@ -251,7 +269,9 @@ export function AccountFormSheet({
                   paddingVertical: 8,
                   borderRadius: 12,
                   backgroundColor:
-                    formData.type === type.value ? "#16a34a" : "#262626",
+                    formData.type === type.value
+                      ? colors.primary.DEFAULT
+                      : colors.background.subtle,
                   marginRight: 8,
                   marginBottom: 8,
                 }}
@@ -259,12 +279,19 @@ export function AccountFormSheet({
                 <MaterialIcons
                   name={type.icon as any}
                   size={20}
-                  color="white"
+                  color={
+                    formData.type === type.value
+                      ? colors.white
+                      : colors.foreground
+                  }
                   style={{ marginRight: 6 }}
                 />
                 <Text
                   style={{
-                    color: "#ffffff",
+                    color:
+                      formData.type === type.value
+                        ? colors.white
+                        : colors.foreground,
                     fontSize: 14,
                     fontWeight: "500",
                   }}
@@ -282,7 +309,7 @@ export function AccountFormSheet({
             style={{
               fontSize: 14,
               fontWeight: "500",
-              color: "#d4d4d4",
+              color: colors.muted.foreground,
               marginBottom: 8,
             }}
           >
@@ -304,19 +331,25 @@ export function AccountFormSheet({
               }
             }}
             placeholder="0.00"
-            placeholderTextColor="#6b7280"
+            placeholderTextColor={colors.muted.foreground}
             keyboardType="decimal-pad"
             style={{
-              backgroundColor: "#262626",
+              backgroundColor: colors.background.subtle,
               borderRadius: 12,
               paddingHorizontal: 16,
               paddingVertical: 12,
-              color: "#ffffff",
+              color: colors.foreground,
               fontSize: 16,
             }}
           />
           {errors.balance && (
-            <Text style={{ color: "#ef4444", fontSize: 14, marginTop: 4 }}>
+            <Text
+              style={{
+                color: colors.destructive.DEFAULT,
+                fontSize: 14,
+                marginTop: 4,
+              }}
+            >
               {errors.balance}
             </Text>
           )}

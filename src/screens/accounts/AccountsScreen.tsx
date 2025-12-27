@@ -3,7 +3,7 @@ import { ScrollView, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSupabaseSession } from "@/hooks";
 import { Account, AccountFormData } from "@/types/account";
-import { theme } from "@/constants/theme";
+import { useThemeColors } from "@/constants/theme";
 import { useAccountsData } from "./hooks/useAccountsData";
 import { AccountFormSheet } from "./components/AccountFormSheet";
 import { AccountActionSheet } from "./components/AccountActionSheet";
@@ -16,6 +16,7 @@ import { AddAccountCard } from "./components/AddAccountCard";
 import { FullScreenLoader } from "@/components/ui";
 
 export default function AccountsScreen() {
+  const colors = useThemeColors();
   const { session } = useSupabaseSession();
   const {
     accounts,
@@ -122,14 +123,17 @@ export default function AccountsScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: colors.background.DEFAULT }}
+    >
       <ScrollView
         className="flex-1 px-4 pt-4"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={theme.colors.primary.DEFAULT}
+            tintColor={colors.primary.DEFAULT}
           />
         }
       >

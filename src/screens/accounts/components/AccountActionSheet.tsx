@@ -7,7 +7,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Account } from "@/types/account";
-import { theme } from "@/constants/theme";
+import { useThemeColors } from "@/constants/theme";
 
 type AccountActionSheetProps = {
   visible: boolean;
@@ -26,6 +26,7 @@ export function AccountActionSheet({
   onDelete,
   onAdjust,
 }: AccountActionSheetProps) {
+  const colors = useThemeColors();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["40%"], []);
 
@@ -85,8 +86,6 @@ export function AccountActionSheet({
 
   if (!account) return null;
 
-  const colors = theme.colors;
-
   return (
     <BottomSheetModal
       ref={bottomSheetRef}
@@ -131,10 +130,10 @@ export function AccountActionSheet({
                 <MaterialIcons
                   name="tune"
                   size={20}
-                  color="#ffffff"
+                  color={colors.white}
                   style={styles.actionIcon}
                 />
-                <Text style={[styles.actionText, { color: "#ffffff" }]}>
+                <Text style={[styles.actionText, { color: colors.white }]}>
                   Adjust amount
                 </Text>
               </TouchableOpacity>
@@ -169,10 +168,14 @@ export function AccountActionSheet({
               <MaterialIcons
                 name="delete"
                 size={20}
-                color="#ffffff"
+                color={colors.white}
                 style={styles.actionIcon}
               />
-              <Text style={styles.deleteButtonText}>Delete Account</Text>
+              <Text
+                style={[styles.deleteButtonText, { color: colors.white }]}
+              >
+                Delete Account
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -232,7 +235,6 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#ffffff",
   },
 });
 

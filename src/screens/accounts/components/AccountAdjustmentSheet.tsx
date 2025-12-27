@@ -8,6 +8,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { Account } from "@/types/account";
 import { PrimaryButton } from "@/components/ui";
+import { useThemeColors } from "@/constants/theme";
 import { formatBalance } from "../utils/formatting";
 
 type AccountAdjustmentSheetProps = {
@@ -27,6 +28,7 @@ export function AccountAdjustmentSheet({
   onSubmit,
   loading = false,
 }: AccountAdjustmentSheetProps) {
+  const colors = useThemeColors();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["70%", "95%"], []);
 
@@ -129,8 +131,8 @@ export function AccountAdjustmentSheet({
       onChange={handleSheetChanges}
       onDismiss={handleDismiss}
       enablePanDownToClose
-      backgroundStyle={{ backgroundColor: "#171717" }}
-      handleIndicatorStyle={{ backgroundColor: "#525252" }}
+      backgroundStyle={{ backgroundColor: colors.card.DEFAULT }}
+      handleIndicatorStyle={{ backgroundColor: colors.border }}
       backdropComponent={renderBackdrop}
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
@@ -152,11 +154,21 @@ export function AccountAdjustmentSheet({
             marginBottom: 24,
           }}
         >
-          <Text style={{ fontSize: 24, fontWeight: "bold", color: "#ffffff" }}>
+          <Text
+            style={{
+              fontSize: 24,
+              fontWeight: "bold",
+              color: colors.foreground,
+            }}
+          >
             Add Adjustment
           </Text>
           <TouchableOpacity onPress={onClose}>
-            <MaterialIcons name="close" size={24} color="white" />
+            <MaterialIcons
+              name="close"
+              size={24}
+              color={colors.foreground}
+            />
           </TouchableOpacity>
         </View>
 
@@ -164,7 +176,7 @@ export function AccountAdjustmentSheet({
         <TouchableOpacity
           onPress={() => setShowInfo(!showInfo)}
           style={{
-            backgroundColor: "#262626",
+            backgroundColor: colors.background.subtle,
             borderRadius: 12,
             padding: 16,
             marginBottom: 24,
@@ -183,7 +195,7 @@ export function AccountAdjustmentSheet({
                 style={{
                   fontSize: 16,
                   fontWeight: "600",
-                  color: "#ffffff",
+                  color: colors.foreground,
                   flex: 1,
                 }}
               >
@@ -193,14 +205,14 @@ export function AccountAdjustmentSheet({
             <MaterialIcons
               name={showInfo ? "keyboard-arrow-up" : "keyboard-arrow-down"}
               size={24}
-              color="#9ca3af"
+              color={colors.muted.foreground}
             />
           </View>
           {showInfo && (
             <Text
               style={{
                 fontSize: 14,
-                color: "#9ca3af",
+                color: colors.muted.foreground,
                 marginTop: 12,
                 lineHeight: 20,
               }}
@@ -218,7 +230,7 @@ export function AccountAdjustmentSheet({
             style={{
               fontSize: 14,
               fontWeight: "500",
-              color: "#d4d4d4",
+              color: colors.muted.foreground,
               marginBottom: 8,
             }}
           >
@@ -226,13 +238,13 @@ export function AccountAdjustmentSheet({
           </Text>
           <View
             style={{
-              backgroundColor: "#262626",
+              backgroundColor: colors.background.subtle,
               borderRadius: 12,
               paddingHorizontal: 16,
               paddingVertical: 12,
             }}
           >
-            <Text style={{ color: "#ffffff", fontSize: 16 }}>
+            <Text style={{ color: colors.foreground, fontSize: 16 }}>
               {formatBalance(spendableAmount, account.currency)}
             </Text>
           </View>
@@ -244,7 +256,7 @@ export function AccountAdjustmentSheet({
             style={{
               fontSize: 14,
               fontWeight: "500",
-              color: "#d4d4d4",
+              color: colors.muted.foreground,
               marginBottom: 8,
             }}
           >
@@ -257,14 +269,14 @@ export function AccountAdjustmentSheet({
               setNewSpendable(formatBalanceInput(text));
             }}
             placeholder="0.00"
-            placeholderTextColor="#6b7280"
+            placeholderTextColor={colors.muted.foreground}
             keyboardType="decimal-pad"
             style={{
-              backgroundColor: "#262626",
+              backgroundColor: colors.background.subtle,
               borderRadius: 12,
               paddingHorizontal: 16,
               paddingVertical: 12,
-              color: "#ffffff",
+              color: colors.foreground,
               fontSize: 16,
             }}
           />
@@ -276,7 +288,7 @@ export function AccountAdjustmentSheet({
             style={{
               fontSize: 14,
               fontWeight: "500",
-              color: "#d4d4d4",
+              color: colors.muted.foreground,
               marginBottom: 8,
             }}
           >
@@ -284,7 +296,7 @@ export function AccountAdjustmentSheet({
           </Text>
           <View
             style={{
-              backgroundColor: "#262626",
+              backgroundColor: colors.background.subtle,
               borderRadius: 12,
               paddingHorizontal: 16,
               paddingVertical: 12,
@@ -292,7 +304,9 @@ export function AccountAdjustmentSheet({
           >
             <Text
               style={{
-                color: isPositive ? "#22c55e" : "#ef4444",
+                color: isPositive
+                  ? colors.primary.DEFAULT
+                  : colors.destructive.DEFAULT,
                 fontSize: 16,
                 fontWeight: "600",
               }}

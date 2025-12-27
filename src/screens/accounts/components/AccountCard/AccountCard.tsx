@@ -4,7 +4,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Account } from "@/types/account";
 import { Category, CategoryReservation } from "@/types/category";
-import { theme } from "@/constants/theme";
+import { useThemeColors } from "@/constants/theme";
 import {
   ACCOUNT_TYPE_ICONS,
   ACCOUNT_TYPE_COLORS,
@@ -38,6 +38,7 @@ export function AccountCard({
   onToggleExpanded,
 }: AccountCardProps) {
   const router = useRouter();
+  const colors = useThemeColors();
 
   const accountReservations = getAccountReservations(
     account.id,
@@ -54,8 +55,8 @@ export function AccountCard({
   return (
     <LinearGradient
       colors={[
-        theme.colors.surfaceGradient.from,
-        theme.colors.surfaceGradient.to,
+        colors.surfaceGradient.from,
+        colors.surfaceGradient.to,
       ]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -63,13 +64,14 @@ export function AccountCard({
     >
       <TouchableOpacity
         className="rounded-3xl"
-        // onPress={() => onEdit(account)}
-        // onPress={(e) => {
-        //   e.stopPropagation();
-        //   onShowActions(account);
-        // }}
         activeOpacity={0.9}
-        style={styles.cardInner}
+        style={[
+          styles.cardInner,
+          {
+            backgroundColor: colors.cardOverlay,
+            shadowColor: colors.shadow,
+          },
+        ]}
       >
         <View className="flex-row items-start justify-between">
           <View className="flex-row items-center flex-1 pr-3">
@@ -79,14 +81,20 @@ export function AccountCard({
               <MaterialIcons
                 name={ACCOUNT_TYPE_ICONS[account.type] as any}
                 size={22}
-                color={theme.colors.white}
+                color={colors.white}
               />
             </View>
             <View className="flex-1">
-              <Text className="text-foreground text-base font-semibold">
+              <Text
+                className="text-base font-semibold"
+                style={{ color: colors.foreground }}
+              >
                 {account.name}
               </Text>
-              <Text className="text-muted-foreground text-xs mt-1">
+              <Text
+                className="text-xs mt-1"
+                style={{ color: colors.muted.foreground }}
+              >
                 {showTypeMeta
                   ? `${account.type.replace("_", " ")} • ${account.currency}`
                   : account.currency}
@@ -98,45 +106,67 @@ export function AccountCard({
               e.stopPropagation();
               onShowActions(account);
             }}
-            className="w-8 h-8 rounded-full bg-white/5 items-center justify-center"
+            className="w-8 h-8 rounded-full items-center justify-center"
+            style={{ backgroundColor: colors.background.subtle }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <MaterialIcons
               name="more-vert"
               size={18}
-              color={theme.colors.muted.foreground}
+              color={colors.muted.foreground}
             />
           </TouchableOpacity>
         </View>
 
         {/* Hero total balance */}
         <View className="mt-4">
-          {/* <Text className="text-muted-foreground text-xs uppercase tracking-[0.2em]">
-            Total Balance
-          </Text> */}
-          <Text className="text-neutral-100 text-3xl text-center font-extrabold mt-1">
+          <Text
+            className="text-3xl text-center font-extrabold mt-1"
+            style={{ color: colors.foreground }}
+          >
             {formatBalance(totalBalance, account.currency)}
           </Text>
         </View>
 
         {/* Mini stats row: Reserved / Free to Spend */}
-        <View className="mt-4 flex-row items-center rounded-2xl bg-white/5 border border-white/10 px-4 py-3">
+        <View
+          className="mt-4 flex-row items-center rounded-2xl px-4 py-3 border"
+          style={{
+            backgroundColor: colors.card.DEFAULT,
+            borderColor: colors.border,
+          }}
+        >
           <View className="flex-1 mr-3">
-            <Text className="text-muted-foreground text-[10px] uppercase tracking-[0.2em]">
+            <Text
+              className="text-[10px] uppercase tracking-[0.2em]"
+              style={{ color: colors.muted.foreground }}
+            >
               SPENDABLE
             </Text>
-            <Text className="text-primary text-xl font-semibold mt-1">
+            <Text
+              className="text-xl font-semibold mt-1"
+              style={{ color: colors.primary.DEFAULT }}
+            >
               {formatBalance(freeToSpend, account.currency)}
             </Text>
           </View>
 
-          <View className="w-px h-8 bg-white/10" />
+          <View
+            className="w-px h-8"
+            style={{ backgroundColor: colors.border }}
+          />
 
           <View className="flex-1 ml-3 items-end">
-            <Text className="text-muted-foreground text-[10px] uppercase tracking-[0.2em]">
+            <Text
+              className="text-[10px] uppercase tracking-[0.2em]"
+              style={{ color: colors.muted.foreground }}
+            >
               Reserved
             </Text>
-            <Text className="text-[#FACC15] text-xl font-semibold mt-1">
+            <Text
+              className="text-xl font-semibold mt-1"
+              style={{ color: "#FACC15" }}
+            >
               {formatBalance(reservedTotal, account.currency)}
             </Text>
           </View>
@@ -151,15 +181,22 @@ export function AccountCard({
 
         {/* Manage funds button at the bottom */}
         <TouchableOpacity
-          className="mt-4 flex-row items-center justify-center rounded-2xl bg-primary-soft border border-primary-border py-2"
+          className="mt-4 flex-row items-center justify-center rounded-2xl border py-2"
+          style={{
+            backgroundColor: colors.primary.soft,
+            borderColor: colors.primary.border,
+          }}
           onPress={() => router.push("/(auth)/(tabs)/categories")}
         >
           <MaterialIcons
             name="savings"
             size={16}
-            color={theme.colors.primary.DEFAULT}
+            color={colors.primary.DEFAULT}
           />
-          <Text className="text-primary text-sm font-semibold ml-2">
+          <Text
+            className="text-sm font-semibold ml-2"
+            style={{ color: colors.primary.DEFAULT }}
+          >
             Manage Funds
           </Text>
         </TouchableOpacity>
@@ -176,8 +213,6 @@ const styles = StyleSheet.create({
   cardInner: {
     borderRadius: 28,
     padding: 16,
-    backgroundColor: theme.colors.cardOverlay,
-    shadowColor: theme.colors.shadow,
     shadowOpacity: 0.25,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 16,

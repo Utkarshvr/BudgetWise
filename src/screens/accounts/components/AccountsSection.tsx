@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import { useThemeColors } from "@/constants/theme";
 import { Account } from "@/types/account";
 import { Category, CategoryReservation } from "@/types/category";
 import { AccountCard } from "./AccountCard/AccountCard";
@@ -28,13 +29,20 @@ export function AccountsSection({
   expandedReservations,
   onToggleReservations,
 }: AccountsSectionProps) {
+  const colors = useThemeColors();
+  
   if (accounts.length === 0) {
     return null;
   }
 
   return (
     <View className="mb-6">
-      <Text className="text-lg font-bold text-foreground mb-3">{title}</Text>
+      <Text
+        className="text-lg font-bold mb-3"
+        style={{ color: colors.foreground }}
+      >
+        {title}
+      </Text>
       {accounts.map((account) => (
         <AccountCard
           key={account.id}

@@ -1,6 +1,6 @@
 import { Text, View, TouchableOpacity } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { theme } from "@/constants/theme";
+import { useThemeColors } from "@/constants/theme";
 import { CategoryReservation } from "@/types/category";
 import { ReservationItem } from "./ReservationItem";
 
@@ -18,6 +18,7 @@ export function ReservationsSection({
   expanded,
   onToggle,
 }: ReservationsSectionProps) {
+  const colors = useThemeColors();
   const hasReservations = reservations.length > 0;
 
   return (
@@ -28,17 +29,23 @@ export function ReservationsSection({
             onPress={onToggle}
             className="flex-row items-center justify-between"
           >
-            <Text className="text-muted-foreground text-xs uppercase tracking-[0.2em]">
+            <Text
+              className="text-xs uppercase tracking-[0.2em]"
+              style={{ color: colors.muted.foreground }}
+            >
               Funds ({reservations.length})
             </Text>
             <MaterialIcons
               name={expanded ? "expand-less" : "expand-more"}
               size={20}
-              color={theme.colors.muted.foreground}
+              color={colors.muted.foreground}
             />
           </TouchableOpacity>
           {expanded && (
-            <View className="mt-2 rounded-2xl border border-border">
+            <View
+              className="mt-2 rounded-2xl border"
+              style={{ borderColor: colors.border }}
+            >
               {reservations.map((item, index) => (
                 <ReservationItem
                   key={item.id}
@@ -51,10 +58,16 @@ export function ReservationsSection({
         </>
       ) : (
         <>
-          <Text className="text-muted-foreground text-xs uppercase tracking-[0.2em]">
+          <Text
+            className="text-xs uppercase tracking-[0.2em]"
+            style={{ color: colors.muted.foreground }}
+          >
             Funds
           </Text>
-          <Text className="text-muted-foreground text-sm mt-2">
+          <Text
+            className="text-sm mt-2"
+            style={{ color: colors.muted.foreground }}
+          >
             No funds yet. Create one to reserve money for goals.
           </Text>
         </>
