@@ -238,14 +238,24 @@ export function CategoryParentSelectSheet({
           showsVerticalScrollIndicator={false}
         >
           <View className="flex-row items-center justify-between mb-6">
-            <Text className="text-white text-xl font-semibold">
+            <Text
+              className="text-xl font-semibold"
+              style={{ color: colors.foreground }}
+            >
               Cannot Move Parent Category
             </Text>
             <TouchableOpacity onPress={onClose}>
-              <MaterialIcons name="close" size={24} color="#9ca3af" />
+              <MaterialIcons
+                name="close"
+                size={24}
+                color={colors.muted.foreground}
+              />
             </TouchableOpacity>
           </View>
-          <Text className="text-neutral-300 text-base mb-6">
+          <Text
+            className="text-base mb-6"
+            style={{ color: colors.muted.foreground }}
+          >
             Parent categories are organizational containers and cannot be moved. 
             You can move individual child categories instead.
           </Text>
@@ -280,38 +290,62 @@ export function CategoryParentSelectSheet({
           keyboardShouldPersistTaps="handled"
         >
           <View className="flex-row items-center justify-between mb-6">
-            <Text className="text-white text-xl font-semibold">
+            <Text
+              className="text-xl font-semibold"
+              style={{ color: colors.foreground }}
+            >
               Move "{category.name}"
             </Text>
             <TouchableOpacity onPress={onClose}>
-              <MaterialIcons name="close" size={24} color="#9ca3af" />
+              <MaterialIcons
+                name="close"
+                size={24}
+                color={colors.muted.foreground}
+              />
             </TouchableOpacity>
           </View>
 
           {!showCreateParent ? (
             <>
-              <Text className="text-neutral-300 text-sm mb-4">
+              <Text
+                className="text-sm mb-4"
+                style={{ color: colors.muted.foreground }}
+              >
                 Select a parent category or move to top level
               </Text>
 
               {/* Move to top level option */}
               <TouchableOpacity
                 onPress={() => setSelectedParentId(null)}
-                className={`flex-row items-center px-4 py-3 rounded-xl mb-3 ${
-                  selectedParentId === null
-                    ? "bg-primary border-2 border-primary"
-                    : "bg-neutral-800 border-2 border-transparent"
-                }`}
+                className="flex-row items-center px-4 py-3 rounded-xl mb-3 border-2"
+                style={{
+                  backgroundColor:
+                    selectedParentId === null
+                      ? colors.primary.DEFAULT
+                      : colors.background.subtle,
+                  borderColor:
+                    selectedParentId === null
+                      ? colors.primary.DEFAULT
+                      : "transparent",
+                }}
               >
                 <MaterialIcons
                   name="folder"
                   size={24}
-                  color={selectedParentId === null ? "#ffffff" : colors.muted.foreground}
+                  color={
+                    selectedParentId === null
+                      ? colors.white
+                      : colors.muted.foreground
+                  }
                 />
                 <Text
-                  className={`text-base font-medium ml-3 ${
-                    selectedParentId === null ? "text-white" : "text-neutral-300"
-                  }`}
+                  className="text-base font-medium ml-3"
+                  style={{
+                    color:
+                      selectedParentId === null
+                        ? colors.white
+                        : colors.muted.foreground,
+                  }}
                 >
                   Top Level (No Parent)
                 </Text>
@@ -320,18 +354,27 @@ export function CategoryParentSelectSheet({
               {/* Available parent categories */}
               {availableParents.length > 0 && (
                 <>
-                  <Text className="text-neutral-300 text-sm mb-3 mt-2">
+                  <Text
+                    className="text-sm mb-3 mt-2"
+                    style={{ color: colors.muted.foreground }}
+                  >
                     Existing Parent Categories
                   </Text>
                   {availableParents.map((parent) => (
                     <TouchableOpacity
                       key={parent.id}
                       onPress={() => setSelectedParentId(parent.id)}
-                      className={`flex-row items-center px-4 py-3 rounded-xl mb-2 ${
-                        selectedParentId === parent.id
-                          ? "bg-primary border-2 border-primary"
-                          : "bg-neutral-800 border-2 border-transparent"
-                      }`}
+                      className="flex-row items-center px-4 py-3 rounded-xl mb-2 border-2"
+                      style={{
+                        backgroundColor:
+                          selectedParentId === parent.id
+                            ? colors.primary.DEFAULT
+                            : colors.background.subtle,
+                        borderColor:
+                          selectedParentId === parent.id
+                            ? colors.primary.DEFAULT
+                            : "transparent",
+                      }}
                     >
                       <View
                         className="w-10 h-10 rounded-full items-center justify-center mr-3"
@@ -340,11 +383,13 @@ export function CategoryParentSelectSheet({
                         <Text style={{ fontSize: 20 }}>{parent.emoji}</Text>
                       </View>
                       <Text
-                        className={`text-base font-medium flex-1 ${
-                          selectedParentId === parent.id
-                            ? "text-white"
-                            : "text-neutral-300"
-                        }`}
+                        className="text-base font-medium flex-1"
+                        style={{
+                          color:
+                            selectedParentId === parent.id
+                              ? colors.white
+                              : colors.muted.foreground,
+                        }}
                       >
                         {parent.name}
                       </Text>
@@ -359,21 +404,32 @@ export function CategoryParentSelectSheet({
                   setShowCreateParent(true);
                   setSelectedParentId("new");
                 }}
-                className={`flex-row items-center px-4 py-3 rounded-xl mt-3 border-2 ${
-                  selectedParentId === "new"
-                    ? "bg-primary border-primary"
-                    : "bg-neutral-800 border-primary/50"
-                }`}
+                className="flex-row items-center px-4 py-3 rounded-xl mt-3 border-2"
+                style={{
+                  backgroundColor:
+                    selectedParentId === "new"
+                      ? colors.primary.DEFAULT
+                      : colors.background.subtle,
+                  borderColor: colors.primary.border,
+                }}
               >
                 <MaterialIcons
                   name="add-circle-outline"
                   size={24}
-                  color={selectedParentId === "new" ? "#ffffff" : colors.primary.DEFAULT}
+                  color={
+                    selectedParentId === "new"
+                      ? colors.white
+                      : colors.primary.DEFAULT
+                  }
                 />
                 <Text
-                  className={`text-base font-medium ml-3 ${
-                    selectedParentId === "new" ? "text-white" : "text-primary"
-                  }`}
+                  className="text-base font-medium ml-3"
+                  style={{
+                    color:
+                      selectedParentId === "new"
+                        ? colors.white
+                        : colors.primary.DEFAULT,
+                  }}
                 >
                   Create New Parent Category
                 </Text>
@@ -381,7 +437,10 @@ export function CategoryParentSelectSheet({
             </>
           ) : (
             <>
-              <Text className="text-neutral-300 text-sm mb-4">
+              <Text
+                className="text-sm mb-4"
+                style={{ color: colors.muted.foreground }}
+              >
                 Create a new parent category
               </Text>
 
@@ -395,13 +454,22 @@ export function CategoryParentSelectSheet({
                 </TouchableOpacity>
               </View>
 
-              <Text className="text-neutral-300 text-sm mb-2">Parent Category Name</Text>
+              <Text
+                className="text-sm mb-2"
+                style={{ color: colors.muted.foreground }}
+              >
+                Parent Category Name
+              </Text>
               <TextInput
                 value={newParentName}
                 onChangeText={setNewParentName}
                 placeholder="e.g., Food, Transportation"
-                placeholderTextColor="#6b7280"
-                className="bg-neutral-800 rounded-2xl px-4 py-3 text-white text-base mb-6"
+                placeholderTextColor={colors.muted.foreground}
+                className="rounded-2xl px-4 py-3 text-base mb-6"
+                style={{
+                  backgroundColor: colors.card.DEFAULT,
+                  color: colors.foreground,
+                }}
                 autoFocus
               />
 
@@ -409,7 +477,10 @@ export function CategoryParentSelectSheet({
                 onPress={() => setShowCreateParent(false)}
                 className="mb-4"
               >
-                <Text className="text-primary text-sm font-medium">
+                <Text
+                  className="text-sm font-medium"
+                  style={{ color: colors.primary.DEFAULT }}
+                >
                   ← Back to select existing parent
                 </Text>
               </TouchableOpacity>

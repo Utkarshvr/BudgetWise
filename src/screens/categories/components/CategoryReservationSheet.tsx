@@ -21,7 +21,6 @@ import { supabase } from "@/lib";
 import { getErrorMessage } from "@/utils";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
 import { ACCOUNT_TYPE_ICONS, ACCOUNT_TYPE_COLORS } from "@/screens/accounts/utils";
-import { theme } from "@/constants/theme";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -288,8 +287,8 @@ export function CategoryReservationSheet({
       onChange={handleSheetChanges}
       onDismiss={handleDismiss}
       enablePanDownToClose
-      backgroundStyle={{ backgroundColor: "#171717" }}
-      handleIndicatorStyle={{ backgroundColor: "#525252" }}
+      backgroundStyle={{ backgroundColor: colors.card.DEFAULT }}
+      handleIndicatorStyle={{ backgroundColor: colors.border }}
       backdropComponent={renderBackdrop}
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
@@ -309,21 +308,36 @@ export function CategoryReservationSheet({
               <Text style={{ fontSize: 24 }}>{category.emoji}</Text>
             </View>
             <View className="flex-1">
-              <Text className="text-white text-lg font-semibold">
+              <Text
+                className="text-lg font-semibold"
+                style={{ color: colors.foreground }}
+              >
                 {category.name}
               </Text>
-              <Text className="text-neutral-400 text-sm">Manage Funds</Text>
+              <Text
+                className="text-sm"
+                style={{ color: colors.muted.foreground }}
+              >
+                Manage Funds
+              </Text>
             </View>
           </View>
           <TouchableOpacity onPress={onClose}>
-            <MaterialIcons name="close" size={24} color="#9ca3af" />
+            <MaterialIcons
+              name="close"
+              size={24}
+              color={colors.muted.foreground}
+            />
           </TouchableOpacity>
         </View>
 
         {/* Current Reservations */}
         {reservations.length > 0 ? (
           <View className="mb-6">
-            <Text className="text-neutral-300 text-sm mb-3 font-semibold">
+            <Text
+              className="text-sm mb-3 font-semibold"
+              style={{ color: colors.muted.foreground }}
+            >
               Current Reservations
             </Text>
             {reservations.map((reservation) => {
@@ -335,9 +349,12 @@ export function CategoryReservationSheet({
               return (
                 <View
                   key={reservation.id}
-                  className="bg-neutral-800 rounded-2xl p-4 mb-3 border-2"
-                  style={{ 
-                    borderColor: isExpanded ? "#3b82f6" : "transparent"
+                  className="rounded-2xl p-4 mb-3 border-2"
+                  style={{
+                    backgroundColor: colors.background.subtle,
+                    borderColor: isExpanded
+                      ? colors.primary.DEFAULT
+                      : "transparent",
                   }}
                 >
                   {/* Header with Account Name and Reserved Amount */}
@@ -350,34 +367,65 @@ export function CategoryReservationSheet({
                           <MaterialIcons
                             name={ACCOUNT_TYPE_ICONS[account.type] as any}
                             size={20}
-                            color={theme.colors.white}
+                            color={colors.white}
                           />
                         </View>
                       )}
                       <View className="flex-1">
-                        <Text className="text-white text-lg font-semibold">
+                        <Text
+                          className="text-lg font-semibold"
+                          style={{ color: colors.foreground }}
+                        >
                           {account?.name || "Unknown Account"}
                         </Text>
                       </View>
                     </View>
                     <View className="flex-row items-center">
-                      <Text className="text-green-400 text-xl font-bold">
-                        {formatBalance(reservation.reserved_amount, reservation.currency)}
+                      <Text
+                        className="text-xl font-bold"
+                        style={{ color: colors.primary.DEFAULT }}
+                      >
+                        {formatBalance(
+                          reservation.reserved_amount,
+                          reservation.currency
+                        )}
                       </Text>
                     </View>
                   </View>
 
                   {/* Balance Details */}
-                  <View className="flex-row justify-between mb-3 pb-3 border-b border-neutral-700">
+                  <View
+                    className="flex-row justify-between mb-3 pb-3 border-b"
+                    style={{ borderBottomColor: colors.border }}
+                  >
                     <View>
-                      <Text className="text-neutral-400 text-xs mb-1">FULL BALANCE</Text>
-                      <Text className="text-white text-sm font-medium">
-                        {formatBalance(account?.balance || 0, account?.currency || "INR")}
+                      <Text
+                        className="text-xs mb-1"
+                        style={{ color: colors.muted.foreground }}
+                      >
+                        FULL BALANCE
+                      </Text>
+                      <Text
+                        className="text-sm font-medium"
+                        style={{ color: colors.foreground }}
+                      >
+                        {formatBalance(
+                          account?.balance || 0,
+                          account?.currency || "INR"
+                        )}
                       </Text>
                     </View>
                     <View className="items-end">
-                      <Text className="text-neutral-400 text-xs mb-1">FREE TO SPEND</Text>
-                      <Text className="text-white text-sm font-medium">
+                      <Text
+                        className="text-xs mb-1"
+                        style={{ color: colors.muted.foreground }}
+                      >
+                        FREE TO SPEND
+                      </Text>
+                      <Text
+                        className="text-sm font-medium"
+                        style={{ color: colors.foreground }}
+                      >
                         {formatBalance(freeToSpend, account?.currency || "INR")}
                       </Text>
                     </View>
@@ -389,22 +437,41 @@ export function CategoryReservationSheet({
                       <View className="flex-[0.9] flex-row gap-2">
                         <TouchableOpacity
                           onPress={() => handleActionClick(reservation.id, "add")}
-                          className="flex-1 bg-green-600 rounded-xl py-3 items-center"
+                          className="flex-1 rounded-xl py-3 items-center"
+                          style={{ backgroundColor: colors.primary.DEFAULT }}
                         >
-                          <Text className="text-white text-sm font-semibold">Add Funds</Text>
+                          <Text
+                            className="text-sm font-semibold"
+                            style={{ color: colors.white }}
+                          >
+                            Add Funds
+                          </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                          onPress={() => handleActionClick(reservation.id, "withdraw")}
-                          className="flex-1 bg-neutral-700 rounded-xl py-3 items-center"
+                          onPress={() =>
+                            handleActionClick(reservation.id, "withdraw")
+                          }
+                          className="flex-1 rounded-xl py-3 items-center"
+                          style={{ backgroundColor: colors.background.DEFAULT }}
                         >
-                          <Text className="text-white text-sm font-semibold">Withdraw</Text>
+                          <Text
+                            className="text-sm font-semibold"
+                            style={{ color: colors.foreground }}
+                          >
+                            Withdraw
+                          </Text>
                         </TouchableOpacity>
                       </View>
                       <TouchableOpacity
                         onPress={() => handleDeleteReservation(reservation)}
-                        className="flex-[0.1] bg-neutral-700 rounded-xl py-3 items-center justify-center"
+                        className="flex-[0.1] rounded-xl py-3 items-center justify-center"
+                        style={{ backgroundColor: colors.background.DEFAULT }}
                       >
-                        <MaterialIcons name="delete-outline" size={20} color="#ef4444" />
+                        <MaterialIcons
+                          name="delete-outline"
+                          size={20}
+                          color={colors.destructive.DEFAULT}
+                        />
                       </TouchableOpacity>
                     </View>
                   )}
@@ -417,31 +484,66 @@ export function CategoryReservationSheet({
                         <View className="flex-[0.8] flex-row gap-2">
                           <TouchableOpacity
                             onPress={() => handleActionClick(reservation.id, "add")}
-                            className={`flex-1 rounded-xl justify-center items-center ${
-                              activeAction === "add" ? "bg-green-600" : "bg-neutral-700"
-                            }`}
+                            className="flex-1 rounded-xl justify-center items-center"
+                            style={{
+                              backgroundColor:
+                                activeAction === "add"
+                                  ? colors.primary.DEFAULT
+                                  : colors.background.DEFAULT,
+                            }}
                           >
-                            <Text className="text-white text-sm font-semibold">Add Funds</Text>
+                            <Text
+                              className="text-sm font-semibold"
+                              style={{
+                                color:
+                                  activeAction === "add"
+                                    ? colors.white
+                                    : colors.foreground,
+                              }}
+                            >
+                              Add Funds
+                            </Text>
                           </TouchableOpacity>
                           <TouchableOpacity
-                            onPress={() => handleActionClick(reservation.id, "withdraw")}
-                            className={`flex-1 rounded-xl justify-center items-center ${
-                              activeAction === "withdraw" ? "bg-neutral-600" : "bg-neutral-700"
-                            }`}
+                            onPress={() =>
+                              handleActionClick(reservation.id, "withdraw")
+                            }
+                            className="flex-1 rounded-xl justify-center items-center"
+                            style={{
+                              backgroundColor:
+                                activeAction === "withdraw"
+                                  ? colors.background.subtle
+                                  : colors.background.DEFAULT,
+                            }}
                           >
-                            <Text className="text-white text-sm font-semibold">Withdraw</Text>
+                            <Text
+                              className="text-sm font-semibold"
+                              style={{ color: colors.foreground }}
+                            >
+                              Withdraw
+                            </Text>
                           </TouchableOpacity>
                         </View>
                         <TouchableOpacity
                           onPress={() => handleDeleteReservation(reservation)}
-                          className="flex-[0.2] bg-neutral-700 rounded-xl py-2 items-center justify-center"
+                          className="flex-[0.2] rounded-xl py-2 items-center justify-center"
+                          style={{ backgroundColor: colors.background.DEFAULT }}
                         >
-                          <MaterialIcons name="delete-outline" size={20} color="#ef4444" />
+                          <MaterialIcons
+                            name="delete-outline"
+                            size={20}
+                            color={colors.destructive.DEFAULT}
+                          />
                         </TouchableOpacity>
                       </View>
 
                       {/* Amount Input and Submit */}
-                      <Text className="text-neutral-300 text-xs mb-2">Enter Amount</Text>
+                      <Text
+                        className="text-xs mb-2"
+                        style={{ color: colors.muted.foreground }}
+                      >
+                        Enter Amount
+                      </Text>
                       <View className="flex-row gap-2">
                         <TextInput
                           value={amount}
@@ -455,20 +557,33 @@ export function CategoryReservationSheet({
                             }
                           }}
                           placeholder="3000"
-                          placeholderTextColor="#6b7280"
+                          placeholderTextColor={colors.muted.foreground}
                           keyboardType="decimal-pad"
-                          className="flex-1 bg-neutral-700 rounded-xl px-4 py-3 text-white text-base"
+                          className="flex-1 rounded-xl px-4 py-3 text-base"
+                          style={{
+                            backgroundColor: colors.background.DEFAULT,
+                            color: colors.foreground,
+                          }}
                           autoFocus
                         />
                         <TouchableOpacity
-                          onPress={() => handleSubmit(reservation.account_id, activeAction!)}
+                          onPress={() =>
+                            handleSubmit(reservation.account_id, activeAction!)
+                          }
                           disabled={submitting || !amount}
-                          className={`rounded-xl px-6 items-center justify-center ${
-                            activeAction === "add" ? "bg-green-600" : "bg-neutral-600"
-                          }`}
-                          style={{ opacity: submitting || !amount ? 0.5 : 1 }}
+                          className="rounded-xl px-6 items-center justify-center"
+                          style={{
+                            backgroundColor:
+                              activeAction === "add"
+                                ? colors.primary.DEFAULT
+                                : colors.background.subtle,
+                            opacity: submitting || !amount ? 0.5 : 1,
+                          }}
                         >
-                          <Text className="text-white text-sm font-semibold">
+                          <Text
+                            className="text-sm font-semibold"
+                            style={{ color: colors.white }}
+                          >
                             {activeAction === "add" ? "Add" : "Withdraw"}
                           </Text>
                         </TouchableOpacity>
@@ -480,10 +595,21 @@ export function CategoryReservationSheet({
             })}
           </View>
         ) : (
-          <View className="bg-neutral-800/50 rounded-2xl p-6 mb-6 items-center">
-            <MaterialIcons name="account-balance-wallet" size={48} color="#525252" />
-            <Text className="text-neutral-400 text-sm text-center mt-3">
-              No reservations yet. Add funds from your accounts to start budgeting for this category.
+          <View
+            className="rounded-2xl p-6 mb-6 items-center"
+            style={{ backgroundColor: colors.background.subtle }}
+          >
+            <MaterialIcons
+              name="account-balance-wallet"
+              size={48}
+              color={colors.muted.foreground}
+            />
+            <Text
+              className="text-sm text-center mt-3"
+              style={{ color: colors.muted.foreground }}
+            >
+              No reservations yet. Add funds from your accounts to start budgeting
+              for this category.
             </Text>
           </View>
         )}
@@ -492,13 +618,18 @@ export function CategoryReservationSheet({
         {accountsWithoutReservations.length > 0 && (
           <View className="mb-6">
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-neutral-300 text-sm font-semibold">
+              <Text
+                className="text-sm font-semibold"
+                style={{ color: colors.muted.foreground }}
+              >
                 Add Funds to New Account
               </Text>
               {reservations.length > 0 && (
                 <TouchableOpacity
                   onPress={() => {
-                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                    LayoutAnimation.configureNext(
+                      LayoutAnimation.Presets.easeInEaseOut
+                    );
                     setShowNewAccountSection(!showNewAccountSection);
                     if (!showNewAccountSection) {
                       setExpandedCard(null);
@@ -509,7 +640,10 @@ export function CategoryReservationSheet({
                   }}
                   className="flex-row items-center"
                 >
-                  <Text className="text-primary text-xs mr-1">
+                  <Text
+                    className="text-xs mr-1"
+                    style={{ color: colors.primary.DEFAULT }}
+                  >
                     {showNewAccountSection ? "Hide" : "Show"}
                   </Text>
                   <MaterialIcons
@@ -522,7 +656,10 @@ export function CategoryReservationSheet({
             </View>
 
             {(!reservations.length || showNewAccountSection) && (
-              <View className="bg-neutral-800 rounded-2xl">
+              <View
+                className="rounded-2xl"
+                style={{ backgroundColor: colors.background.subtle }}
+              >
                 {accountsWithoutReservations.map((account, index) => {
                   const isExpanded = selectedNewAccountId === account.id;
                   const unreservedAmount = accountUnreserved[account.id] || 0;
@@ -532,10 +669,16 @@ export function CategoryReservationSheet({
                       <TouchableOpacity
                         onPress={() => handleNewAccountClick(account.id)}
                         className={`px-4 py-3 flex-row items-center justify-between ${
-                          index !== accountsWithoutReservations.length - 1
-                            ? "border-b border-neutral-700"
-                            : ""
-                        } ${isExpanded ? "bg-green-600/20" : ""}`}
+                          isExpanded ? "" : ""
+                        }`}
+                        style={{
+                          borderBottomWidth:
+                            index !== accountsWithoutReservations.length - 1 ? 1 : 0,
+                          borderBottomColor: colors.border,
+                          backgroundColor: isExpanded
+                            ? colors.primary.soft
+                            : "transparent",
+                        }}
                       >
                         <View className="flex-row items-center flex-1">
                           <View
@@ -544,27 +687,50 @@ export function CategoryReservationSheet({
                             <MaterialIcons
                               name={ACCOUNT_TYPE_ICONS[account.type] as any}
                               size={20}
-                              color={theme.colors.white}
+                              color={colors.white}
                             />
                           </View>
                           <View className="flex-1">
-                            <Text className="text-white text-base">{account.name}</Text>
-                            <Text className="text-neutral-400 text-xs mt-1">
-                              Free to plan · {formatBalance(unreservedAmount, account.currency)}
+                            <Text
+                              className="text-base"
+                              style={{ color: colors.foreground }}
+                            >
+                              {account.name}
+                            </Text>
+                            <Text
+                              className="text-xs mt-1"
+                              style={{ color: colors.muted.foreground }}
+                            >
+                              Free to plan ·{" "}
+                              {formatBalance(unreservedAmount, account.currency)}
                             </Text>
                           </View>
                         </View>
                         {isExpanded ? (
-                          <MaterialIcons name="check-circle" size={20} color="#22c55e" />
+                          <MaterialIcons
+                            name="check-circle"
+                            size={20}
+                            color={colors.primary.DEFAULT}
+                          />
                         ) : (
-                          <MaterialIcons name="add-circle-outline" size={20} color="#9ca3af" />
+                          <MaterialIcons
+                            name="add-circle-outline"
+                            size={20}
+                            color={colors.muted.foreground}
+                          />
                         )}
                       </TouchableOpacity>
 
                       {/* Expanded Input Section for New Account */}
                       {isExpanded && (
-                        <View className="px-4 pb-4 border-t border-neutral-700">
-                          <Text className="text-neutral-300 text-xs mb-2 mt-3">
+                        <View
+                          className="px-4 pb-4 border-t"
+                          style={{ borderTopColor: colors.border }}
+                        >
+                          <Text
+                            className="text-xs mb-2 mt-3"
+                            style={{ color: colors.muted.foreground }}
+                          >
                             Enter Amount
                           </Text>
                           <View className="flex-row gap-2">
@@ -574,24 +740,38 @@ export function CategoryReservationSheet({
                                 const cleaned = text.replace(/[^\d.]/g, "");
                                 const parts = cleaned.split(".");
                                 if (parts.length > 2) {
-                                  setAmount(parts[0] + "." + parts.slice(1).join(""));
+                                  setAmount(
+                                    parts[0] + "." + parts.slice(1).join("")
+                                  );
                                 } else {
                                   setAmount(cleaned);
                                 }
                               }}
                               placeholder="0.00"
-                              placeholderTextColor="#6b7280"
+                              placeholderTextColor={colors.muted.foreground}
                               keyboardType="decimal-pad"
-                              className="flex-1 bg-neutral-700 rounded-xl px-4 py-3 text-white text-base"
+                              className="flex-1 rounded-xl px-4 py-3 text-base"
+                              style={{
+                                backgroundColor: colors.background.DEFAULT,
+                                color: colors.foreground,
+                              }}
                               autoFocus
                             />
                             <TouchableOpacity
                               onPress={() => handleAddToNewAccount(account.id)}
                               disabled={submitting || !amount}
-                              className="bg-green-600 rounded-xl px-6 items-center justify-center"
-                              style={{ opacity: submitting || !amount ? 0.5 : 1 }}
+                              className="rounded-xl px-6 items-center justify-center"
+                              style={{
+                                backgroundColor: colors.primary.DEFAULT,
+                                opacity: submitting || !amount ? 0.5 : 1,
+                              }}
                             >
-                              <Text className="text-white text-sm font-semibold">Add</Text>
+                              <Text
+                                className="text-sm font-semibold"
+                                style={{ color: colors.white }}
+                              >
+                                Add
+                              </Text>
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -604,9 +784,16 @@ export function CategoryReservationSheet({
           </View>
         )}
 
-        <View className="bg-neutral-800/50 rounded-xl p-3">
-          <Text className="text-neutral-400 text-xs text-center">
-            💡 Tip: Reserved funds help you plan spending for specific categories. Tap on any account to add or withdraw funds.
+        <View
+          className="rounded-xl p-3"
+          style={{ backgroundColor: colors.background.subtle }}
+        >
+          <Text
+            className="text-xs text-center"
+            style={{ color: colors.muted.foreground }}
+          >
+            💡 Tip: Reserved funds help you plan spending for specific categories.
+            Tap on any account to add or withdraw funds.
           </Text>
         </View>
       </BottomSheetScrollView>

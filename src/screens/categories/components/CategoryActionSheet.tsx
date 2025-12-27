@@ -180,10 +180,14 @@ export function CategoryActionSheet({
               <MaterialIcons
                 name="delete"
                 size={20}
-                color="#ffffff"
+                color={colors.white}
                 style={styles.actionIcon}
               />
-              <Text style={styles.deleteButtonText}>Delete Category</Text>
+              <Text
+                style={[styles.deleteButtonText, { color: colors.white }]}
+              >
+                Delete Category
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -259,7 +263,6 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#ffffff",
   },
 });
 

@@ -4,7 +4,7 @@ import { Category, CategoryReservation } from "@/types/category";
 import { Account } from "@/types/account";
 import { formatBalance, formatDate } from "../../utils";
 import { CategoryDetails } from "./CategoryDetails";
-import { theme, useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
+import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
 
 type CategoryCardProps = {
   category: Category;
@@ -57,7 +57,8 @@ export function CategoryCard({
 
   return (
     <View
-      className="rounded-xl mb-3 overflow-hidden bg-background-subtle"
+      className="rounded-xl mb-3 overflow-hidden"
+      style={{ backgroundColor: colors.background.subtle }}
     >
       <TouchableOpacity
         activeOpacity={0.85}
@@ -71,22 +72,37 @@ export function CategoryCard({
           <Text style={{ fontSize: 28 }}>{category.emoji}</Text>
         </View>
         <View className="flex-1">
-          <Text className="text-foreground text-base font-semibold mb-1">
+          <Text
+            className="text-base font-semibold mb-1"
+            style={{ color: colors.foreground }}
+          >
             {category.name}
           </Text>
           {/* Show fund status below the name for both parent and non-parent categories */}
           <View className="flex-row items-center">
             {isReserved ? (
               <View className="flex-row items-center">
-                <View className="w-1.5 h-1.5 rounded-full bg-primary mr-1.5" />
-                <Text className="text-primary text-xs font-medium">
+                <View
+                  className="w-1.5 h-1.5 rounded-full mr-1.5"
+                  style={{ backgroundColor: colors.primary.DEFAULT }}
+                />
+                <Text
+                  className="text-xs font-medium"
+                  style={{ color: colors.primary.DEFAULT }}
+                >
                   {formatBalance(totalReserved, fundCurrency)}
                 </Text>
               </View>
             ) : (
               <View className="flex-row items-center">
-                <View className="w-1.5 h-1.5 rounded-full bg-muted-foreground mr-1.5" />
-                <Text className="text-muted-foreground text-xs font-medium">
+                <View
+                  className="w-1.5 h-1.5 rounded-full mr-1.5"
+                  style={{ backgroundColor: colors.muted.foreground }}
+                />
+                <Text
+                  className="text-xs font-medium"
+                  style={{ color: colors.muted.foreground }}
+                >
                   {isParent ? "No funds in children" : "No fund"}
                 </Text>
               </View>
@@ -102,7 +118,7 @@ export function CategoryCard({
                   isExpanded ? "expand-less" : "keyboard-arrow-down"
                 }
                 size={24}
-                color={theme.colors.muted.foreground}
+                color={colors.muted.foreground}
               />
             </View>
           )}
@@ -117,7 +133,7 @@ export function CategoryCard({
             <MaterialIcons
               name="more-vert"
               size={20}
-              color={theme.colors.muted.foreground}
+              color={colors.muted.foreground}
             />
           </TouchableOpacity>
         </View>
@@ -125,12 +141,18 @@ export function CategoryCard({
 
       {isExpanded && (
         <>
-          <View className="h-px bg-border mx-4" />
+          <View
+            className="h-px mx-4"
+            style={{ backgroundColor: colors.border }}
+          />
           <View className="px-4 pt-3 pb-4">
             {isParent ? (
               // Show children categories
               <View>
-                <Text className="text-muted-foreground text-xs mb-3">
+                <Text
+                  className="text-xs mb-3"
+                  style={{ color: colors.muted.foreground }}
+                >
                   {children.length} categor{children.length === 1 ? "y" : "ies"}
                 </Text>
                 {children.map((child, index) => {
@@ -158,21 +180,36 @@ export function CategoryCard({
                           <Text style={{ fontSize: 20 }}>{child.emoji}</Text>
                         </View>
                         <View className="flex-1">
-                          <Text className="text-foreground text-sm font-medium mb-1">
+                          <Text
+                            className="text-sm font-medium mb-1"
+                            style={{ color: colors.foreground }}
+                          >
                             {child.name}
                           </Text>
                           <View className="flex-row items-center">
                             {childIsReserved ? (
                               <View className="flex-row items-center">
-                                <View className="w-1.5 h-1.5 rounded-full bg-primary mr-1.5" />
-                                <Text className="text-primary text-xs font-medium">
+                                <View
+                                  className="w-1.5 h-1.5 rounded-full mr-1.5"
+                                  style={{ backgroundColor: colors.primary.DEFAULT }}
+                                />
+                                <Text
+                                  className="text-xs font-medium"
+                                  style={{ color: colors.primary.DEFAULT }}
+                                >
                                   {formatBalance(childTotalReserved, childCurrency)}
                                 </Text>
                               </View>
                             ) : (
                               <View className="flex-row items-center">
-                                <View className="w-1.5 h-1.5 rounded-full bg-muted-foreground mr-1.5" />
-                                <Text className="text-muted-foreground text-xs font-medium">
+                                <View
+                                  className="w-1.5 h-1.5 rounded-full mr-1.5"
+                                  style={{ backgroundColor: colors.muted.foreground }}
+                                />
+                                <Text
+                                  className="text-xs font-medium"
+                                  style={{ color: colors.muted.foreground }}
+                                >
                                   No fund
                                 </Text>
                               </View>
@@ -189,7 +226,7 @@ export function CategoryCard({
                                     : "keyboard-arrow-down"
                                 }
                                 size={20}
-                                color={theme.colors.muted.foreground}
+                                color={colors.muted.foreground}
                               />
                             </View>
                           )}
@@ -204,7 +241,7 @@ export function CategoryCard({
                             <MaterialIcons
                               name="more-vert"
                               size={18}
-                              color={theme.colors.muted.foreground}
+                              color={colors.muted.foreground}
                             />
                           </TouchableOpacity>
                         </View>
@@ -212,9 +249,15 @@ export function CategoryCard({
 
                       {isChildExpanded && child.category_type === "expense" && (
                         <>
-                          <View className="h-px bg-border ml-13 mt-2 mb-2" />
+                          <View
+                            className="h-px ml-13 mt-2 mb-2"
+                            style={{ backgroundColor: colors.border }}
+                          />
                           <View className="ml-13">
-                            <Text className="text-muted-foreground text-xs mb-2">
+                            <Text
+                              className="text-xs mb-2"
+                              style={{ color: colors.muted.foreground }}
+                            >
                               Updated {formatDate(child.updated_at)}
                             </Text>
                             <CategoryDetails
@@ -238,7 +281,10 @@ export function CategoryCard({
             ) : (
               // Show category details for non-parent categories
               <>
-                <Text className="text-muted-foreground text-xs mb-3">
+                <Text
+                  className="text-xs mb-3"
+                  style={{ color: colors.muted.foreground }}
+                >
                   Updated {formatDate(category.updated_at)}
                 </Text>
                 <CategoryDetails

@@ -1,5 +1,5 @@
 import { Text, TouchableOpacity, View } from "react-native";
-import { theme } from "@/constants/theme";
+import { useThemeColors } from "@/constants/theme";
 
 type CategoriesTabsProps = {
   activeTab: "income" | "expense";
@@ -7,22 +7,31 @@ type CategoriesTabsProps = {
 };
 
 export function CategoriesTabs({ activeTab, onChangeTab }: CategoriesTabsProps) {
+  const colors = useThemeColors();
+  
   return (
-    <View className="flex-row mb-6 bg-background-subtle rounded-2xl p-1">
+    <View
+      className="flex-row mb-6 rounded-2xl p-1"
+      style={{ backgroundColor: colors.background.subtle }}
+    >
       <TouchableOpacity
         onPress={() => onChangeTab("expense")}
         className="flex-1 py-3 rounded-xl"
         style={{
           backgroundColor:
             activeTab === "expense"
-              ? theme.colors.background.DEFAULT
+              ? colors.card.DEFAULT
               : "transparent",
         }}
       >
         <Text
-          className={`text-center font-semibold ${
-            activeTab === "expense" ? "text-foreground" : "text-muted-foreground"
-          }`}
+          className="text-center font-semibold"
+          style={{
+            color:
+              activeTab === "expense"
+                ? colors.foreground
+                : colors.muted.foreground,
+          }}
         >
           Expense
         </Text>
@@ -33,14 +42,18 @@ export function CategoriesTabs({ activeTab, onChangeTab }: CategoriesTabsProps) 
         style={{
           backgroundColor:
             activeTab === "income"
-              ? theme.colors.background.DEFAULT
+              ? colors.card.DEFAULT
               : "transparent",
         }}
       >
         <Text
-          className={`text-center font-semibold ${
-            activeTab === "income" ? "text-foreground" : "text-muted-foreground"
-          }`}
+          className="text-center font-semibold"
+          style={{
+            color:
+              activeTab === "income"
+                ? colors.foreground
+                : colors.muted.foreground,
+          }}
         >
           Income
         </Text>

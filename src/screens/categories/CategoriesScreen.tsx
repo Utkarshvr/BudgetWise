@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "@/lib";
 import { useSupabaseSession } from "@/hooks";
 import { Category, CategoryFormData } from "@/types/category";
-import { theme } from "@/constants/theme";
+import { useThemeColors } from "@/constants/theme";
 import { useCategoriesData } from "./hooks/useCategoriesData";
 import { CategoryFormSheet } from "./components/CategoryFormSheet";
 import { CategoryReservationSheet } from "./components/CategoryReservationSheet";
@@ -19,6 +19,7 @@ import { getTotalReserved as getTotalReservedForAccount } from "@/screens/accoun
 import { getErrorMessage } from "@/utils";
 
 export default function CategoriesScreen() {
+  const colors = useThemeColors();
   const { session } = useSupabaseSession();
   const {
     categories,
@@ -280,14 +281,17 @@ export default function CategoriesScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView
+      className="flex-1"
+      style={{ backgroundColor: colors.background.DEFAULT }}
+    >
       <ScrollView
         className="flex-1 px-4 pt-4"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={theme.colors.primary.DEFAULT}
+            tintColor={colors.primary.DEFAULT}
           />
         }
       >
