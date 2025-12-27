@@ -13,6 +13,7 @@ import {
   formatBalance,
   getTotalReserved,
 } from "@/screens/accounts/utils";
+import { useThemeColors } from "@/constants/theme";
 
 type AccountSelectSheetProps = {
   visible: boolean;
@@ -35,6 +36,7 @@ export function AccountSelectSheet({
   onClose,
   onSelect,
 }: AccountSelectSheetProps) {
+  const colors = useThemeColors();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["50%"], []);
 
@@ -93,12 +95,15 @@ export function AccountSelectSheet({
       onChange={handleSheetChanges}
       onDismiss={handleDismiss}
       enablePanDownToClose
-      backgroundStyle={{ backgroundColor: "#262626" }}
-      handleIndicatorStyle={{ backgroundColor: "#525252" }}
+      backgroundStyle={{ backgroundColor: colors.card.DEFAULT }}
+      handleIndicatorStyle={{ backgroundColor: colors.border }}
       backdropComponent={renderBackdrop}
     >
       <BottomSheetView className="flex-1 px-6 pt-4 pb-8">
-        <Text className="text-xl font-semibold text-white text-center mb-6">
+        <Text
+          className="text-xl font-semibold text-center mb-6"
+          style={{ color: colors.foreground }}
+        >
           {title}
         </Text>
 
@@ -160,9 +165,15 @@ export function AccountSelectSheet({
 
         <TouchableOpacity
           onPress={onClose}
-          className="mt-6 bg-white rounded-3xl py-4 items-center"
+          className="mt-6 rounded-3xl py-4 items-center"
+          style={{ backgroundColor: colors.primary.DEFAULT }}
         >
-          <Text className="text-base font-semibold text-black">Save and close</Text>
+          <Text
+            className="text-base font-semibold"
+            style={{ color: colors.white }}
+          >
+            Save and close
+          </Text>
         </TouchableOpacity>
       </BottomSheetView>
     </BottomSheetModal>

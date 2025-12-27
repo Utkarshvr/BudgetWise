@@ -291,11 +291,18 @@ export function CategoryFormSheet({
           keyboardShouldPersistTaps="handled"
         >
           <View className="flex-row items-center justify-between mb-6">
-            <Text className="text-white text-xl font-semibold">
+            <Text
+              className="text-xl font-semibold"
+              style={{ color: colors.foreground }}
+            >
               {category ? "Edit Category" : "New Category"}
             </Text>
             <TouchableOpacity onPress={onClose}>
-              <MaterialIcons name="close" size={24} color="#9ca3af" />
+              <MaterialIcons
+                name="close"
+                size={24}
+                color={colors.muted.foreground}
+              />
             </TouchableOpacity>
           </View>
 
@@ -309,10 +316,20 @@ export function CategoryFormSheet({
             </TouchableOpacity>
           </View>
           {errors.emoji && (
-            <Text className="text-red-500 text-sm mb-6">{errors.emoji}</Text>
+            <Text
+              className="text-sm mb-6"
+              style={{ color: colors.destructive.DEFAULT }}
+            >
+              {errors.emoji}
+            </Text>
           )}
 
-          <Text className="text-neutral-300 text-sm mb-2">Name</Text>
+          <Text
+            className="text-sm mb-2"
+            style={{ color: colors.muted.foreground }}
+          >
+            Name
+          </Text>
           <TextInput
             key={nameInputKey}
             ref={nameInputRef}
@@ -321,28 +338,47 @@ export function CategoryFormSheet({
               nameValueRef.current = text;
             }}
             placeholder="e.g., Groceries, Travel"
-            placeholderTextColor="#6b7280"
-            className="bg-neutral-800 rounded-2xl px-4 py-3 text-white text-base mb-4"
+            placeholderTextColor={colors.muted.foreground}
+            className="rounded-2xl px-4 py-3 text-base mb-4"
+            style={{
+              backgroundColor: colors.background.subtle,
+              color: colors.foreground,
+            }}
           />
           {errors.name && (
-            <Text className="text-red-500 text-sm mb-6">{errors.name}</Text>
+            <Text
+              className="text-sm mb-6"
+              style={{ color: colors.destructive.DEFAULT }}
+            >
+              {errors.name}
+            </Text>
           )}
           {!category && (
             <>
-              <Text className="text-neutral-300 text-sm mb-3">Type</Text>
+              <Text
+                className="text-sm mb-3"
+                style={{ color: colors.muted.foreground }}
+              >
+                Type
+              </Text>
               <View className="flex-row mb-6">
                 <TouchableOpacity
                   onPress={() =>
                     setFormData({ ...formData, category_type: "income", parent_id: null })
                   }
-                  className={`flex-1 px-4 py-3 rounded-xl mr-2 ${
-                    formData.category_type === "income"
-                      ? "bg-green-600"
-                      : "bg-neutral-800"
-                  }`}
+                  className="flex-1 px-4 py-3 rounded-xl mr-2"
+                  style={{
+                    backgroundColor:
+                      formData.category_type === "income"
+                        ? colors.primary.DEFAULT
+                        : colors.background.subtle,
+                  }}
                   disabled={category !== null} // Don't allow changing type when editing
                 >
-                  <Text className="text-white text-sm font-medium text-center">
+                  <Text
+                    className="text-sm font-medium text-center"
+                    style={{ color: colors.white }}
+                  >
                     Income
                   </Text>
                 </TouchableOpacity>
@@ -350,14 +386,19 @@ export function CategoryFormSheet({
                   onPress={() =>
                     setFormData({ ...formData, category_type: "expense", parent_id: null })
                   }
-                  className={`flex-1 px-4 py-3 rounded-xl ${
-                    formData.category_type === "expense"
-                      ? "bg-green-600"
-                      : "bg-neutral-800"
-                  }`}
+                  className="flex-1 px-4 py-3 rounded-xl"
+                  style={{
+                    backgroundColor:
+                      formData.category_type === "expense"
+                        ? colors.primary.DEFAULT
+                        : colors.background.subtle,
+                  }}
                   disabled={category !== null} // Don't allow changing type when editing
                 >
-                  <Text className="text-white text-sm font-medium text-center">
+                  <Text
+                    className="text-sm font-medium text-center"
+                    style={{ color: colors.white }}
+                  >
                     Expense
                   </Text>
                 </TouchableOpacity>
@@ -366,23 +407,36 @@ export function CategoryFormSheet({
           )}
 
           {/* Parent Category Selection */}
-          <Text className="text-neutral-300 text-sm mb-3">Parent Category (Optional)</Text>
+          <Text
+            className="text-sm mb-3"
+            style={{ color: colors.muted.foreground }}
+          >
+            Parent Category (Optional)
+          </Text>
           {!showCreateParent ? (
             <>
               <TouchableOpacity
                 onPress={() => setShowParentPicker(!showParentPicker)}
-                className="bg-neutral-800 rounded-2xl px-4 py-3 mb-3 flex-row items-center justify-between"
+                className="rounded-2xl px-4 py-3 mb-3 flex-row items-center justify-between"
+                style={{ backgroundColor: colors.background.subtle }}
               >
                 <View className="flex-row items-center flex-1">
                   <MaterialIcons
                     name="folder"
                     size={20}
-                    color={formData.parent_id ? colors.primary.DEFAULT : "#9ca3af"}
+                    color={
+                      formData.parent_id
+                        ? colors.primary.DEFAULT
+                        : colors.muted.foreground
+                    }
                   />
                   <Text
-                    className={`text-base ml-3 ${
-                      formData.parent_id ? "text-white" : "text-neutral-400"
-                    }`}
+                    className="text-base ml-3"
+                    style={{
+                      color: formData.parent_id
+                        ? colors.foreground
+                        : colors.muted.foreground,
+                    }}
                   >
                     {formData.parent_id
                       ? availableParents.find((p) => p.id === formData.parent_id)?.name ||
@@ -393,32 +447,47 @@ export function CategoryFormSheet({
                 <MaterialIcons
                   name={showParentPicker ? "expand-less" : "keyboard-arrow-down"}
                   size={24}
-                  color="#9ca3af"
+                  color={colors.muted.foreground}
                 />
               </TouchableOpacity>
 
               {showParentPicker && (
-                <View className="bg-neutral-900 rounded-xl p-3 mb-3 max-h-48">
+                <View
+                  className="rounded-xl p-3 mb-3 max-h-48"
+                  style={{ backgroundColor: colors.card.DEFAULT }}
+                >
                   <TouchableOpacity
                     onPress={() => {
                       setFormData({ ...formData, parent_id: null });
                       setShowParentPicker(false);
                     }}
-                    className={`flex-row items-center px-3 py-2 rounded-lg mb-2 ${
-                      formData.parent_id === null
-                        ? "bg-primary/20 border border-primary"
-                        : "bg-transparent"
-                    }`}
+                    className="flex-row items-center px-3 py-2 rounded-lg mb-2"
+                    style={{
+                      backgroundColor:
+                        formData.parent_id === null
+                          ? colors.primary.soft
+                          : "transparent",
+                      borderWidth: formData.parent_id === null ? 1 : 0,
+                      borderColor: colors.primary.DEFAULT,
+                    }}
                   >
                     <MaterialIcons
                       name="folder"
                       size={20}
-                      color={formData.parent_id === null ? colors.primary.DEFAULT : "#9ca3af"}
+                      color={
+                        formData.parent_id === null
+                          ? colors.primary.DEFAULT
+                          : colors.muted.foreground
+                      }
                     />
                     <Text
-                      className={`text-sm ml-3 ${
-                        formData.parent_id === null ? "text-primary" : "text-neutral-300"
-                      }`}
+                      className="text-sm ml-3"
+                      style={{
+                        color:
+                          formData.parent_id === null
+                            ? colors.primary.DEFAULT
+                            : colors.muted.foreground,
+                      }}
                     >
                       No parent (Top level)
                     </Text>
@@ -431,11 +500,15 @@ export function CategoryFormSheet({
                         setFormData({ ...formData, parent_id: parent.id });
                         setShowParentPicker(false);
                       }}
-                      className={`flex-row items-center px-3 py-2 rounded-lg mb-2 ${
-                        formData.parent_id === parent.id
-                          ? "bg-primary/20 border border-primary"
-                          : "bg-transparent"
-                      }`}
+                      className="flex-row items-center px-3 py-2 rounded-lg mb-2"
+                      style={{
+                        backgroundColor:
+                          formData.parent_id === parent.id
+                            ? colors.primary.soft
+                            : "transparent",
+                        borderWidth: formData.parent_id === parent.id ? 1 : 0,
+                        borderColor: colors.primary.DEFAULT,
+                      }}
                     >
                       <View
                         className="w-8 h-8 rounded-full items-center justify-center mr-2"
@@ -444,11 +517,13 @@ export function CategoryFormSheet({
                         <Text style={{ fontSize: 16 }}>{parent.emoji}</Text>
                       </View>
                       <Text
-                        className={`text-sm flex-1 ${
-                          formData.parent_id === parent.id
-                            ? "text-primary"
-                            : "text-neutral-300"
-                        }`}
+                        className="text-sm flex-1"
+                        style={{
+                          color:
+                            formData.parent_id === parent.id
+                              ? colors.primary.DEFAULT
+                              : colors.muted.foreground,
+                        }}
                       >
                         {parent.name}
                       </Text>
@@ -460,10 +535,18 @@ export function CategoryFormSheet({
                       setShowCreateParent(true);
                       setShowParentPicker(false);
                     }}
-                    className="flex-row items-center px-3 py-2 rounded-lg mt-2 border border-primary/50"
+                    className="flex-row items-center px-3 py-2 rounded-lg mt-2 border"
+                    style={{ borderColor: colors.primary.border }}
                   >
-                    <MaterialIcons name="add-circle-outline" size={20} color={colors.primary.DEFAULT} />
-                    <Text className="text-primary text-sm ml-3">
+                    <MaterialIcons
+                      name="add-circle-outline"
+                      size={20}
+                      color={colors.primary.DEFAULT}
+                    />
+                    <Text
+                      className="text-sm ml-3"
+                      style={{ color: colors.primary.DEFAULT }}
+                    >
                       Create New Parent Category
                     </Text>
                   </TouchableOpacity>
@@ -472,9 +555,17 @@ export function CategoryFormSheet({
             </>
           ) : (
             <>
-              <View className="bg-neutral-800 rounded-2xl p-4 mb-3">
-                <Text className="text-neutral-300 text-sm mb-3">Create Parent Category</Text>
-                
+              <View
+                className="rounded-2xl p-4 mb-3"
+                style={{ backgroundColor: colors.background.subtle }}
+              >
+                <Text
+                  className="text-sm mb-3"
+                  style={{ color: colors.muted.foreground }}
+                >
+                  Create Parent Category
+                </Text>
+
                 <View className="items-center mb-4">
                   <TouchableOpacity
                     onPress={() => setShowEmojiMenu(true)}
@@ -485,13 +576,22 @@ export function CategoryFormSheet({
                   </TouchableOpacity>
                 </View>
 
-                <Text className="text-neutral-300 text-xs mb-2">Parent Name</Text>
+                <Text
+                  className="text-xs mb-2"
+                  style={{ color: colors.muted.foreground }}
+                >
+                  Parent Name
+                </Text>
                 <TextInput
                   value={newParentName}
                   onChangeText={setNewParentName}
                   placeholder="e.g., Food, Transportation"
-                  placeholderTextColor="#6b7280"
-                  className="bg-neutral-900 rounded-xl px-4 py-3 text-white text-sm mb-3"
+                  placeholderTextColor={colors.muted.foreground}
+                  className="rounded-xl px-4 py-3 text-sm mb-3"
+                  style={{
+                    backgroundColor: colors.card.DEFAULT,
+                    color: colors.foreground,
+                  }}
                   autoFocus
                 />
 
@@ -502,16 +602,30 @@ export function CategoryFormSheet({
                       setNewParentName("");
                       setNewParentEmoji("📁");
                     }}
-                    className="flex-1 bg-neutral-700 rounded-xl py-2"
+                    className="flex-1 rounded-xl py-2"
+                    style={{ backgroundColor: colors.muted.DEFAULT }}
                   >
-                    <Text className="text-white text-sm font-medium text-center">Cancel</Text>
+                    <Text
+                      className="text-sm font-medium text-center"
+                      style={{ color: colors.foreground }}
+                    >
+                      Cancel
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={handleCreateParent}
-                    className="flex-1 bg-primary rounded-xl py-2"
+                    className="flex-1 rounded-xl py-2"
+                    style={{
+                      backgroundColor: colors.primary.DEFAULT,
+                      opacity:
+                        creatingParent || !newParentName.trim() ? 0.5 : 1,
+                    }}
                     disabled={creatingParent || !newParentName.trim()}
                   >
-                    <Text className="text-white text-sm font-medium text-center">
+                    <Text
+                      className="text-sm font-medium text-center"
+                      style={{ color: colors.white }}
+                    >
                       {creatingParent ? "Creating..." : "Create"}
                     </Text>
                   </TouchableOpacity>

@@ -7,6 +7,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import { MaterialIcons } from "@expo/vector-icons";
 import { TransactionType } from "@/types/transaction";
+import { useThemeColors } from "@/constants/theme";
 
 type TransactionTypeSheetProps = {
   visible: boolean;
@@ -31,6 +32,7 @@ export function TransactionTypeSheet({
   onClose,
   onSelect,
 }: TransactionTypeSheetProps) {
+  const colors = useThemeColors();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const snapPoints = useMemo(() => ["60%"], []);
 
@@ -82,12 +84,14 @@ export function TransactionTypeSheet({
       onChange={handleSheetChanges}
       onDismiss={handleDismiss}
       enablePanDownToClose
-      backgroundStyle={{ backgroundColor: "#262626" }}
-      handleIndicatorStyle={{ backgroundColor: "#525252" }}
+      backgroundStyle={{ backgroundColor: colors.card.DEFAULT }}
+      handleIndicatorStyle={{ backgroundColor: colors.border }}
       backdropComponent={renderBackdrop}
     >
       <BottomSheetView style={styles.container}>
-        <Text style={styles.title}>Transaction type</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>
+          Transaction type
+        </Text>
 
         {TRANSACTION_TYPES.map((type) => (
           <TouchableOpacity
@@ -95,15 +99,29 @@ export function TransactionTypeSheet({
             onPress={() => handleSelect(type.value)}
             style={styles.typeOption}
           >
-            <Text style={styles.typeLabel}>{type.label}</Text>
+            <Text style={[styles.typeLabel, { color: colors.foreground }]}>
+              {type.label}
+            </Text>
             {selectedType === type.value && (
-              <MaterialIcons name="check-circle" size={24} color="#3b82f6" />
+              <MaterialIcons
+                name="check-circle"
+                size={24}
+                color={colors.primary.DEFAULT}
+              />
             )}
           </TouchableOpacity>
         ))}
 
-        <TouchableOpacity onPress={onClose} style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save and close</Text>
+        <TouchableOpacity
+          onPress={onClose}
+          style={[
+            styles.saveButton,
+            { backgroundColor: colors.primary.DEFAULT },
+          ]}
+        >
+          <Text style={[styles.saveButtonText, { color: colors.white }]}>
+            Save and close
+          </Text>
         </TouchableOpacity>
       </BottomSheetView>
     </BottomSheetModal>
@@ -120,7 +138,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "600",
-    color: "white",
     textAlign: "center",
     marginBottom: 24,
   },
@@ -133,11 +150,9 @@ const styles = StyleSheet.create({
   },
   typeLabel: {
     fontSize: 18,
-    color: "white",
   },
   saveButton: {
     marginTop: 24,
-    backgroundColor: "white",
     borderRadius: 24,
     paddingVertical: 16,
     alignItems: "center",
@@ -145,7 +160,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "black",
   },
 });
 

@@ -890,9 +890,9 @@ export default function TransactionFormScreen({
   };
 
   const getAccountIconColor = (accountId: string | null) => {
-    if (!accountId) return "white";
+    if (!accountId) return colors.muted.foreground;
     const account = accounts.find((a) => a.id === accountId);
-    return account ? getAccountTypeColor(account.type) : "white";
+    return account ? getAccountTypeColor(account.type) : colors.muted.foreground;
   };
 
   // Categories to display based on transaction type
@@ -946,8 +946,11 @@ export default function TransactionFormScreen({
 
   if (loadingAccounts) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#22c55e" />
+      <SafeAreaView
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: colors.background.DEFAULT }}
+      >
+        <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
       </SafeAreaView>
     );
   }
@@ -960,13 +963,26 @@ export default function TransactionFormScreen({
         visible={toast.visible}
         onHide={hideToast}
       />
-      <SafeAreaView className="flex-1 bg-neutral-900">
+      <SafeAreaView
+        className="flex-1"
+        style={{ backgroundColor: colors.background.DEFAULT }}
+      >
         {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-3 bg-neutral-800">
+        <View
+          className="flex-row items-center justify-between px-4 py-3"
+          style={{ backgroundColor: colors.card.DEFAULT }}
+        >
           <TouchableOpacity onPress={onClose}>
-            <MaterialIcons name="arrow-back" size={24} color="white" />
+            <MaterialIcons
+              name="arrow-back"
+              size={24}
+              color={colors.foreground}
+            />
           </TouchableOpacity>
-          <Text className="text-lg font-semibold text-white">
+          <Text
+            className="text-lg font-semibold"
+            style={{ color: colors.foreground }}
+          >
             {isEditing ? "Edit transaction" : `₹${formData.amount}`}
           </Text>
           <View style={{ width: 24 }} />
@@ -979,22 +995,34 @@ export default function TransactionFormScreen({
         >
           {/* Amount Field (only for editing) */}
           {isEditing && (
-            <View className="px-4 py-4 border-b border-neutral-800">
+            <View
+              className="px-4 py-4 border-b"
+              style={{ borderBottomColor: colors.border }}
+            >
               <View className="flex-row items-center">
-                <Text className="text-neutral-400 text-base w-16">Amount</Text>
+                <Text
+                  className="text-base w-16"
+                  style={{ color: colors.muted.foreground }}
+                >
+                  Amount
+                </Text>
                 <TextInput
                   value={formData.amount}
                   onChangeText={(text) =>
                     setFormData({ ...formData, amount: text })
                   }
                   placeholder="0.00"
-                  placeholderTextColor="#6b7280"
+                  placeholderTextColor={colors.muted.foreground}
                   keyboardType="decimal-pad"
-                  className="flex-1 text-white text-base"
+                  className="flex-1 text-base"
+                  style={{ color: colors.foreground }}
                 />
               </View>
               {errors.amount && (
-                <Text className="text-red-500 text-sm mt-1 ml-16">
+                <Text
+                  className="text-sm mt-1 ml-16"
+                  style={{ color: colors.destructive.DEFAULT }}
+                >
                   {errors.amount}
                 </Text>
               )}
@@ -1002,21 +1030,33 @@ export default function TransactionFormScreen({
           )}
 
           {/* For Field */}
-          <View className="px-4 py-4 border-b border-neutral-800">
+          <View
+            className="px-4 py-4 border-b"
+            style={{ borderBottomColor: colors.border }}
+          >
             <View className="flex-row items-center">
-              <Text className="text-neutral-400 text-base w-16">For</Text>
+              <Text
+                className="text-base w-16"
+                style={{ color: colors.muted.foreground }}
+              >
+                For
+              </Text>
               <TextInput
                 value={formData.note}
                 onChangeText={(text) =>
                   setFormData({ ...formData, note: text })
                 }
                 placeholder={getNotePlaceholder()}
-                placeholderTextColor="#6b7280"
-                className="flex-1 text-white text-base"
+                placeholderTextColor={colors.muted.foreground}
+                className="flex-1 text-base"
+                style={{ color: colors.foreground }}
               />
             </View>
             {errors.note && (
-              <Text className="text-red-500 text-sm mt-1 ml-16">
+              <Text
+                className="text-sm mt-1 ml-16"
+                style={{ color: colors.destructive.DEFAULT }}
+              >
                 {errors.note}
               </Text>
             )}
@@ -1025,11 +1065,17 @@ export default function TransactionFormScreen({
           {/* Type Field */}
           <TouchableOpacity
             onPress={() => setShowTypeSheet(true)}
-            className="px-4 py-4 border-b border-neutral-800"
+            className="px-4 py-4 border-b"
+            style={{ borderBottomColor: colors.border }}
           >
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1">
-                <Text className="text-neutral-400 text-base w-16">Type</Text>
+                <Text
+                  className="text-base w-16"
+                  style={{ color: colors.muted.foreground }}
+                >
+                  Type
+                </Text>
                 <MaterialIcons
                   name={getTypeIcon() as any}
                   size={20}
@@ -1043,7 +1089,12 @@ export default function TransactionFormScreen({
                     ],
                   }}
                 />
-                <Text className="text-white text-base">{getTypeLabel()}</Text>
+                <Text
+                  className="text-base"
+                  style={{ color: colors.foreground }}
+                >
+                  {getTypeLabel()}
+                </Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -1052,24 +1103,36 @@ export default function TransactionFormScreen({
           {(formData.type === "expense" || formData.type === "transfer") && (
             <TouchableOpacity
               onPress={() => openAccountSheet("from")}
-              className="px-4 py-4 border-b border-neutral-800"
+              className="px-4 py-4 border-b"
+              style={{ borderBottomColor: colors.border }}
             >
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center flex-1">
-                  <Text className="text-neutral-400 text-base w-16">From</Text>
+                  <Text
+                    className="text-base w-16"
+                    style={{ color: colors.muted.foreground }}
+                  >
+                    From
+                  </Text>
                   <MaterialIcons
                     name={getAccountIcon(formData.from_account_id)}
                     size={20}
                     color={getAccountIconColor(formData.from_account_id)}
                     style={{ marginRight: 8 }}
                   />
-                  <Text className="text-white text-base">
+                  <Text
+                    className="text-base"
+                    style={{ color: colors.foreground }}
+                  >
                     {getAccountLabel(formData.from_account_id)}
                   </Text>
                 </View>
               </View>
               {errors.from_account_id && (
-                <Text className="text-red-500 text-sm mt-1 ml-16">
+                <Text
+                  className="text-sm mt-1 ml-16"
+                  style={{ color: colors.destructive.DEFAULT }}
+                >
                   {errors.from_account_id}
                 </Text>
               )}
@@ -1080,24 +1143,36 @@ export default function TransactionFormScreen({
           {(formData.type === "income" || formData.type === "transfer") && (
             <TouchableOpacity
               onPress={() => openAccountSheet("to")}
-              className="px-4 py-4 border-b border-neutral-800"
+              className="px-4 py-4 border-b"
+              style={{ borderBottomColor: colors.border }}
             >
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center flex-1">
-                  <Text className="text-neutral-400 text-base w-16">To</Text>
+                  <Text
+                    className="text-base w-16"
+                    style={{ color: colors.muted.foreground }}
+                  >
+                    To
+                  </Text>
                   <MaterialIcons
                     name={getAccountIcon(formData.to_account_id)}
                     size={20}
                     color={getAccountIconColor(formData.to_account_id)}
                     style={{ marginRight: 8 }}
                   />
-                  <Text className="text-white text-base">
+                  <Text
+                    className="text-base"
+                    style={{ color: colors.foreground }}
+                  >
                     {getAccountLabel(formData.to_account_id)}
                   </Text>
                 </View>
               </View>
               {errors.to_account_id && (
-                <Text className="text-red-500 text-sm mt-1 ml-16">
+                <Text
+                  className="text-sm mt-1 ml-16"
+                  style={{ color: colors.destructive.DEFAULT }}
+                >
                   {errors.to_account_id}
                 </Text>
               )}
@@ -1109,11 +1184,20 @@ export default function TransactionFormScreen({
             <TouchableOpacity
               key={`date-field-${formData.type}`}
               onPress={() => setShowDatePicker(true)}
-              className="px-4 py-4 border-b border-neutral-800"
+              className="px-4 py-4 border-b"
+              style={{ borderBottomColor: colors.border }}
             >
               <View className="flex-row items-center">
-                <Text className="text-neutral-400 text-base w-16">Date</Text>
-                <Text className="text-white text-base">
+                <Text
+                  className="text-base w-16"
+                  style={{ color: colors.muted.foreground }}
+                >
+                  Date
+                </Text>
+                <Text
+                  className="text-base"
+                  style={{ color: colors.foreground }}
+                >
                   {formatDisplayDate(selectedDate)}
                 </Text>
               </View>
@@ -1124,7 +1208,10 @@ export default function TransactionFormScreen({
           {(formData.type === "expense" || formData.type === "income") && (
             <View className="px-4 py-6">
               <View className="flex-row items-center justify-between mb-3">
-                <Text className="text-neutral-500 text-xs font-semibold uppercase">
+                <Text
+                  className="text-xs font-semibold uppercase"
+                  style={{ color: colors.muted.foreground }}
+                >
                   {formData.type === "income"
                     ? "INCOME CATEGORIES"
                     : "CATEGORIES"}
@@ -1136,8 +1223,15 @@ export default function TransactionFormScreen({
                   }}
                   className="flex-row items-center"
                 >
-                  <MaterialIcons name="add" size={20} color="#22c55e" />
-                  <Text className="text-green-500 text-xs font-semibold ml-1">
+                  <MaterialIcons
+                    name="add"
+                    size={20}
+                    color={colors.primary.DEFAULT}
+                  />
+                  <Text
+                    className="text-xs font-semibold ml-1"
+                    style={{ color: colors.primary.DEFAULT }}
+                  >
                     New Category
                   </Text>
                 </TouchableOpacity>
@@ -1167,13 +1261,19 @@ export default function TransactionFormScreen({
                             : "justify-center"
                         }`}
                       >
-                        <Text className="text-white text-base font-medium">
+                        <Text
+                          className="text-base font-medium"
+                          style={{ color: colors.foreground }}
+                        >
                           {category.name}
                         </Text>
                         {formData.type === "expense" &&
                           formData.from_account_id &&
                           amountLeft !== null && (
-                            <Text className="text-neutral-500 text-sm">
+                            <Text
+                              className="text-sm"
+                              style={{ color: colors.muted.foreground }}
+                            >
                               {`₹${amountLeft.toFixed(2)} left`}
                             </Text>
                           )}
@@ -1182,17 +1282,31 @@ export default function TransactionFormScreen({
                         onPress={() => handleEditCategory(category)}
                         className="p-2 mr-2"
                       >
-                        <MaterialIcons name="edit" size={18} color="#9ca3af" />
+                        <MaterialIcons
+                          name="edit"
+                          size={18}
+                          color={colors.muted.foreground}
+                        />
                       </TouchableOpacity>
                       <View
-                        className={`w-6 h-6 rounded-full border-2 items-center justify-center ${
-                          selectedCategory?.id === category.id
-                            ? "border-green-500 bg-green-500"
-                            : "border-neutral-600"
-                        }`}
+                        className="w-6 h-6 rounded-full border-2 items-center justify-center"
+                        style={{
+                          borderColor:
+                            selectedCategory?.id === category.id
+                              ? colors.primary.DEFAULT
+                              : colors.border,
+                          backgroundColor:
+                            selectedCategory?.id === category.id
+                              ? colors.primary.DEFAULT
+                              : "transparent",
+                        }}
                       >
                         {selectedCategory?.id === category.id && (
-                          <MaterialIcons name="check" size={16} color="black" />
+                          <MaterialIcons
+                            name="check"
+                            size={16}
+                            color={colors.white}
+                          />
                         )}
                       </View>
                     </TouchableOpacity>
@@ -1200,7 +1314,10 @@ export default function TransactionFormScreen({
                 ))
               ) : (
                 <View className="py-4">
-                  <Text className="text-neutral-500 text-sm text-center">
+                  <Text
+                    className="text-sm text-center"
+                    style={{ color: colors.muted.foreground }}
+                  >
                     No categories yet. Tap "New" to create one.
                   </Text>
                 </View>
@@ -1211,18 +1328,25 @@ export default function TransactionFormScreen({
 
         {/* Add/Update Transaction Button - Fixed at Bottom */}
         <View
-          className="absolute bottom-0 left-0 right-0 bg-neutral-900 px-4 pt-2"
-          style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+          className="absolute bottom-0 left-0 right-0 px-4 pt-2"
+          style={{
+            backgroundColor: colors.background.DEFAULT,
+            paddingBottom: Math.max(insets.bottom, 16),
+          }}
         >
           <TouchableOpacity
             onPress={handleSubmit}
             disabled={submitting}
-            className="bg-primary rounded-full py-4 items-center justify-center"
+            className="rounded-full py-4 items-center justify-center"
+            style={{ backgroundColor: colors.primary.DEFAULT }}
           >
             {submitting ? (
-              <ActivityIndicator size="small" color="white" />
+              <ActivityIndicator size="small" color={colors.white} />
             ) : (
-              <Text className="text-primary-foreground text-base font-bold">
+              <Text
+                className="text-base font-bold"
+                style={{ color: colors.white }}
+              >
                 {isEditing ? "Update Transaction" : "Add Transaction"}
               </Text>
             )}
