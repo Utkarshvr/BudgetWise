@@ -15,12 +15,21 @@ import * as WebBrowser from "expo-web-browser";
 import { useSupabaseSession } from "@/hooks";
 import { useThemeColors } from "@/constants/theme";
 import { supabase } from "@/lib";
+import { useColorScheme } from "nativewind";
+
+type ThemeOption = "system" | "light" | "dark";
 
 export default function SettingsScreen() {
   const colors = useThemeColors();
   const { session } = useSupabaseSession();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
   const user = session?.user;
+
+  const { colorScheme, setColorScheme } = useColorScheme();
+  
+  // Get the current theme preference (system, light, or dark)
+  const currentTheme: ThemeOption = (colorScheme as ThemeOption) || "system";
 
   const displayName =
     (user?.user_metadata as any)?.full_name ||
@@ -200,6 +209,54 @@ export default function SettingsScreen() {
                   size={22}
                   color={colors.muted.foreground}
                 />
+              </TouchableOpacity>
+
+              <View className="h-px" style={{ backgroundColor: colors.border }} />
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setShowThemeModal(true)}
+                className="flex-row items-center justify-between px-4 py-4"
+              >
+                <View className="flex-row items-center gap-3 flex-1">
+                  <View
+                    className="w-9 h-9 items-center justify-center rounded-full"
+                    style={{ backgroundColor: colors.muted.DEFAULT }}
+                  >
+                    <MaterialIcons
+                      name="palette"
+                      size={20}
+                      style={{ color: colors.foreground }}
+                    />
+                  </View>
+                  <View className="flex-1" style={{ minWidth: 0 }}>
+                    <Text
+                      className="text-base font-medium"
+                      style={{ color: colors.foreground }}
+                      numberOfLines={1}
+                    >
+                      Theme
+                    </Text>
+                    <Text
+                      className="text-xs mt-0.5"
+                      style={{ color: colors.muted.foreground }}
+                      numberOfLines={1}
+                    >
+                      {currentTheme === "system"
+                        ? "System Default"
+                        : currentTheme === "light"
+                        ? "Light Mode"
+                        : "Dark Mode"}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ marginLeft: 8 }}>
+                  <MaterialIcons
+                    name="chevron-right"
+                    size={22}
+                    color={colors.muted.foreground}
+                  />
+                </View>
               </TouchableOpacity>
 
               {/* <View className="h-px" style={{ backgroundColor: colors.border }} />
@@ -400,6 +457,140 @@ export default function SettingsScreen() {
             </Text>
           </View>
         </View>
+
+        {/* Theme Selection Modal */}
+        <Modal
+          visible={showThemeModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowThemeModal(false)}
+        >
+          <Pressable
+            className="flex-1 items-center justify-center px-6"
+            style={{ backgroundColor: colors.overlay }}
+            onPress={() => setShowThemeModal(false)}
+          >
+            <Pressable
+              className="w-full rounded-2xl p-6"
+              style={{ backgroundColor: colors.card.DEFAULT }}
+              onPress={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <View className="mb-6">
+                <Text
+                  className="text-xl font-bold"
+                  style={{ color: colors.foreground }}
+                >
+                  Select Theme
+                </Text>
+                <Text
+                  className="text-sm mt-1"
+                  style={{ color: colors.muted.foreground }}
+                >
+                  Choose your preferred appearance
+                </Text>
+              </View>
+
+              {/* Theme Options */}
+              <View className="gap-2">
+                {(["system", "light", "dark"] as ThemeOption[]).map(
+                  (theme) => {
+                    const isSelected = currentTheme === theme;
+                    return (
+                      <TouchableOpacity
+                        key={theme}
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          setColorScheme(theme);
+                          setShowThemeModal(false);
+                        }}
+                        className="flex-row items-center justify-between px-4 py-4 rounded-xl"
+                        style={{
+                          backgroundColor: isSelected
+                            ? colors.primary.soft
+                            : colors.background.subtle,
+                          borderWidth: isSelected ? 1 : 0,
+                          borderColor: isSelected
+                            ? colors.primary.DEFAULT
+                            : "transparent",
+                        }}
+                      >
+                        <View className="flex-row items-center gap-3">
+                          <MaterialIcons
+                            name={
+                              theme === "system"
+                                ? "settings-brightness"
+                                : theme === "light"
+                                ? "light-mode"
+                                : "dark-mode"
+                            }
+                            size={22}
+                            color={
+                              isSelected
+                                ? colors.primary.DEFAULT
+                                : colors.foreground
+                            }
+                          />
+                          <View>
+                            <Text
+                              className="text-base font-medium"
+                              style={{
+                                color: isSelected
+                                  ? colors.primary.DEFAULT
+                                  : colors.foreground,
+                              }}
+                            >
+                              {theme === "system"
+                                ? "System Default"
+                                : theme === "light"
+                                ? "Light Mode"
+                                : "Dark Mode"}
+                            </Text>
+                            <Text
+                              className="text-xs mt-0.5"
+                              style={{ color: colors.muted.foreground }}
+                            >
+                              {theme === "system"
+                                ? "Follow device settings"
+                                : theme === "light"
+                                ? "Light appearance"
+                                : "Dark appearance"}
+                            </Text>
+                          </View>
+                        </View>
+                        {isSelected && (
+                          <MaterialIcons
+                            name="check-circle"
+                            size={22}
+                            color={colors.primary.DEFAULT}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  }
+                )}
+              </View>
+
+              {/* Close Button */}
+              <TouchableOpacity
+                onPress={() => setShowThemeModal(false)}
+                className="mt-6 rounded-xl items-center justify-center py-3"
+                style={{
+                  backgroundColor: colors.muted.DEFAULT,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <Text
+                  className="text-base font-semibold"
+                  style={{ color: colors.foreground }}
+                >
+                  Close
+                </Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         <Modal
           visible={showLogoutConfirm}

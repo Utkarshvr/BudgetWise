@@ -1,4 +1,4 @@
-import { useColorScheme } from "react-native";
+import { useColorScheme } from "nativewind";
 
 const darkColors = {
   // Backgrounds
@@ -219,8 +219,11 @@ export const theme = darkTheme;
 export type ThemeColors = typeof darkColors | typeof lightColors;
 
 export function useThemeColors(): ThemeColors {
-  const scheme = useColorScheme();
-  return scheme === "light" ? lightColors : darkColors;
+  const { colorScheme } = useColorScheme();
+  // colorScheme can be "light", "dark", or undefined (system)
+  // If undefined, we'll default to dark for now
+  const effectiveScheme = colorScheme || "dark";
+  return effectiveScheme === "light" ? lightColors : darkColors;
 }
 
 /**
