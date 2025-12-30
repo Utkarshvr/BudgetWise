@@ -8,6 +8,8 @@ import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { useFonts } from "expo-font";
 import { Montserrat_400Regular, Montserrat_500Medium, Montserrat_600SemiBold, Montserrat_700Bold } from "@expo-google-fonts/montserrat";
 import * as SplashScreen from "expo-splash-screen";
+import { useColorScheme } from "nativewind";
+import { getThemePreference } from "@/utils/themeStorage";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete
 SplashScreen.preventAutoHideAsync();
@@ -19,6 +21,24 @@ export default function RootLayout() {
     Montserrat_600SemiBold,
     Montserrat_700Bold,
   });
+
+  const { setColorScheme } = useColorScheme();
+
+  // Load theme preference on app start
+  useEffect(() => {
+    const loadThemePreference = async () => {
+      try {
+        const preference = await getThemePreference();
+        if (preference) {
+          setColorScheme(preference);
+        }
+      } catch (error) {
+        console.error("Error loading theme preference:", error);
+      }
+    };
+    loadThemePreference();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (fontError) {

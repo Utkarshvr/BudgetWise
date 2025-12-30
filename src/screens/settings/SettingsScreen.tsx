@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { useSupabaseSession } from "@/hooks";
 import { useThemeColors } from "@/constants/theme";
 import { supabase } from "@/lib";
 import { useColorScheme } from "nativewind";
+import { getThemePreference, setThemePreference, type ThemePreference } from "@/utils/themeStorage";
 
 type ThemeOption = "system" | "light" | "dark";
 
@@ -30,6 +31,25 @@ export default function SettingsScreen() {
   
   // Get the current theme preference (system, light, or dark)
   const currentTheme: ThemeOption = (colorScheme as ThemeOption) || "system";
+
+  // Load theme preference on mount
+  useEffect(() => {
+    const loadThemePreference = async () => {
+      const savedPreference = await getThemePreference();
+      if (savedPreference && savedPreference !== colorScheme) {
+        setColorScheme(savedPreference);
+      }
+    };
+    loadThemePreference();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Handle theme change
+  const handleThemeChange = async (theme: ThemeOption) => {
+    await setThemePreference(theme);
+    setColorScheme(theme);
+    setShowThemeModal(false);
+  };
 
   const displayName =
     (user?.user_metadata as any)?.full_name ||
@@ -500,10 +520,7 @@ export default function SettingsScreen() {
                       <TouchableOpacity
                         key={theme}
                         activeOpacity={0.7}
-                        onPress={() => {
-                          setColorScheme(theme);
-                          setShowThemeModal(false);
-                        }}
+                        onPress={() => handleThemeChange(theme)}
                         className="flex-row items-center justify-between px-4 py-4 rounded-xl"
                         style={{
                           backgroundColor: isSelected
