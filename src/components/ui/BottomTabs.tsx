@@ -15,8 +15,8 @@ export function BottomTabs() {
         tabBarInactiveTintColor: colors.muted.foreground,
         tabBarStyle: {
           backgroundColor: colors.card.DEFAULT,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
+          // borderTopColor: colors.border,
+          // borderTopWidth: 1,
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom,
           paddingTop: 8,
