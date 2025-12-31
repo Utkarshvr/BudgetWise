@@ -109,7 +109,7 @@ export default function AmountInputScreen({
     >
       <View
         className="flex-1"
-        style={{ backgroundColor: colors.background.DEFAULT }}
+        style={{ backgroundColor: colors.background.base }}
       >
         {/* Header */}
         <View className="flex-row items-center justify-end px-6 pt-14 pb-6">
@@ -249,7 +249,7 @@ export default function AmountInputScreen({
             style={{
               backgroundColor:
                 numericAmount > 0
-                  ? colors.primary.DEFAULT
+                  ? colors.foreground
                   : colors.background.subtle,
             }}
           >
@@ -258,7 +258,7 @@ export default function AmountInputScreen({
               style={{
                 color:
                   numericAmount > 0
-                    ? colors.white
+                    ? colors.background.DEFAULT
                     : colors.muted.foreground,
               }}
             >

@@ -1,8 +1,15 @@
 import { useColorScheme } from "nativewind";
 
+const commonColors = {
+  black: "#000000", // black for icons/text
+  white: "#ffffff", // white for icons/text
+  gray: "#808080", // gray for icons/text
+};
+
 const darkColors = {
   // Backgrounds
   background: {
+    base: "#000000",
     DEFAULT: "#171717", // bg-background (neutral-900)
     subtle: "#262626", // bg-background-subtle (neutral-800)
   },
@@ -89,7 +96,6 @@ const darkColors = {
   // Card / surface overlays
   cardOverlay: "rgba(18, 18, 20, 0.92)", // semi-transparent card background
   shadow: "#000000", // shadow color
-  white: "#ffffff", // white for icons/text
 
   // Tab / category backgrounds with opacity
   tabActive: {
@@ -100,14 +106,16 @@ const darkColors = {
     expense: "rgba(239, 68, 68, 0.03)", // destructive with 3% opacity
     income: "rgba(34, 197, 94, 0.03)", // primary with 3% opacity
   },
-  
+
   // Category icon background color
   categoryBackgroundColor: "#333",
+  ...commonColors,
 } as const;
 
 const lightColors = {
   // Backgrounds
   background: {
+    base: "#ffffff",
     DEFAULT: "#f5f5f5", // light background (neutral-100)
     subtle: "#e5e5e5", // subtle surface (neutral-200)
   },
@@ -194,7 +202,6 @@ const lightColors = {
   // Card / surface overlays
   cardOverlay: "rgba(255, 255, 255, 0.95)", // semi-transparent card background for light mode
   shadow: "#000000", // shadow color
-  white: "#ffffff", // white for icons/text
 
   // Tab / category backgrounds with opacity
   tabActive: {
@@ -205,9 +212,10 @@ const lightColors = {
     expense: "rgba(239, 68, 68, 0.03)", // destructive with 3% opacity
     income: "rgba(34, 197, 94, 0.03)", // primary with 3% opacity
   },
-  
+
   // Category icon background color
   categoryBackgroundColor: "#ddd",
+  ...commonColors,
 } as const;
 
 export const darkTheme = { colors: darkColors };
