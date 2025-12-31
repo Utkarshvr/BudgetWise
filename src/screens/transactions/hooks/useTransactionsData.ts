@@ -106,11 +106,23 @@ export function useTransactionsData(
 
       // Filter by categories
       if (filters.categoryIds.length > 0) {
+        const hasOthersIncome = filters.categoryIds.includes("others_income");
+        const hasOthersExpense = filters.categoryIds.includes("others_expense");
+
         filtered = filtered.filter((transaction) => {
-          return (
-            transaction.category_id &&
-            filters.categoryIds.includes(transaction.category_id)
-          );
+          // If transaction has no category, check if "Others" is selected
+          if (!transaction.category_id) {
+            if (transaction.type === "income") {
+              return hasOthersIncome;
+            }
+            if (transaction.type === "expense") {
+              return hasOthersExpense;
+            }
+            return false;
+          }
+
+          // If transaction has a category, check if it's selected
+          return filters.categoryIds.includes(transaction.category_id);
         });
       }
     }
