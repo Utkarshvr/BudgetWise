@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Session } from "@supabase/supabase-js";
 import { Alert } from "react-native";
 import { supabase } from "@/lib";
@@ -6,6 +6,7 @@ import { Category, CategoryReservation } from "@/types/category";
 import { Account } from "@/types/account";
 import { getReservationsForCategory, getTotalReserved } from "../utils/reservationHelpers";
 import { getErrorMessage } from "@/utils";
+import { useRefresh } from "@/contexts/RefreshContext";
 
 export function useCategoriesData(session: Session | null) {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -14,22 +15,9 @@ export function useCategoriesData(session: Session | null) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"income" | "expense">("expense");
+  const { registerCategoriesRefresh } = useRefresh();
 
-  useEffect(() => {
-    if (session?.user) {
-      fetchData();
-    }
-  }, [session]);
-
-  const fetchData = async () => {
-    await Promise.all([
-      fetchCategories(),
-      fetchAccounts(),
-      fetchReservations(),
-    ]);
-  };
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     if (!session?.user) return;
     try {
       // Fetch only non-archived categories for category screens
@@ -49,9 +37,9 @@ export function useCategoriesData(session: Session | null) {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [session]);
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     if (!session?.user) return;
     try {
       const { data, error } = await supabase
@@ -65,9 +53,9 @@ export function useCategoriesData(session: Session | null) {
     } catch (error: any) {
       console.error("Error fetching accounts:", error);
     }
-  };
+  }, [session]);
 
-  const fetchReservations = async () => {
+  const fetchReservations = useCallback(async () => {
     if (!session?.user) return;
     try {
       const { data, error } = await supabase
@@ -80,12 +68,32 @@ export function useCategoriesData(session: Session | null) {
     } catch (error: any) {
       console.error("Error fetching reservations:", error);
     }
-  };
+  }, [session]);
 
-  const handleRefresh = async () => {
+  const fetchData = useCallback(async () => {
+    await Promise.all([
+      fetchCategories(),
+      fetchAccounts(),
+      fetchReservations(),
+    ]);
+  }, [fetchCategories, fetchAccounts, fetchReservations]);
+
+  useEffect(() => {
+    if (session?.user) {
+      fetchData();
+    }
+  }, [session, fetchData]);
+
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchData();
-  };
+  }, [fetchData]);
+
+  // Register refresh function with context
+  useEffect(() => {
+    const cleanup = registerCategoriesRefresh(handleRefresh);
+    return cleanup;
+  }, [handleRefresh, registerCategoriesRefresh]);
 
   const filteredCategories = useMemo(() => {
     return categories.filter((cat) => cat.category_type === activeTab);

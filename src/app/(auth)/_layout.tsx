@@ -1,6 +1,7 @@
 import { Redirect, Stack } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useSupabaseSession } from "@/hooks";
+import { RefreshProvider } from "@/contexts/RefreshContext";
 
 export default function AuthLayout() {
   const { session, isLoading } = useSupabaseSession();
@@ -17,5 +18,9 @@ export default function AuthLayout() {
     return <Redirect href="/(public)/sign-in" />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <RefreshProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </RefreshProvider>
+  );
 }

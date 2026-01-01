@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BottomTabs, FloatingActionButton } from "@/components/ui";
 import AmountInputScreen from "@/screens/transactions/AmountInputScreen";
 import TransactionFormScreen from "@/screens/transactions/TransactionFormScreen";
+import { useRefresh } from "@/contexts/RefreshContext";
 
 export default function TabLayout() {
   const [showAmountInput, setShowAmountInput] = useState(false);
@@ -11,6 +12,7 @@ export default function TabLayout() {
   const [transactionAmount, setTransactionAmount] = useState("0.00");
   const pathname = usePathname();
   const isTransactionsTab = pathname?.includes("/transactions");
+  const { refreshAll } = useRefresh();
 
   return (
     <View style={{ flex: 1 }}>
@@ -45,6 +47,8 @@ export default function TabLayout() {
             onSuccess={() => {
               setShowAddTransaction(false);
               setTransactionAmount("0.00");
+              // Refresh both transactions and accounts
+              refreshAll();
             }}
           />
         </View>

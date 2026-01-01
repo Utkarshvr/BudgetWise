@@ -5,6 +5,7 @@ import { supabase } from "@/lib";
 import { Transaction } from "@/types/transaction";
 import { getDateRangeForPeriod } from "../utils/dateRange";
 import { getErrorMessage } from "@/utils";
+import { useRefresh } from "@/contexts/RefreshContext";
 
 type FilterOptions = {
   accountIds: string[];
@@ -19,6 +20,7 @@ export function useTransactionsData(
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentPeriodDate, setCurrentPeriodDate] = useState(new Date());
+  const { registerTransactionsRefresh } = useRefresh();
 
   // Calculate current date range (always month)
   const currentDateRange = useMemo(() => {
@@ -67,10 +69,16 @@ export function useTransactionsData(
     }
   }, [session, fetchTransactions]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     setRefreshing(true);
     fetchTransactions();
-  };
+  }, [fetchTransactions]);
+
+  // Register refresh function with context
+  useEffect(() => {
+    const cleanup = registerTransactionsRefresh(handleRefresh);
+    return cleanup;
+  }, [handleRefresh, registerTransactionsRefresh]);
 
   const handlePreviousPeriod = () => {
     const newDate = new Date(currentPeriodDate);

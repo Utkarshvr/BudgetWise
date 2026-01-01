@@ -23,6 +23,7 @@ import Animated, {
 import { useSupabaseSession } from "@/hooks";
 import { useThemeColors } from "@/constants/theme";
 import { useTransactionsData } from "./hooks/useTransactionsData";
+import { useRefresh } from "@/contexts/RefreshContext";
 import { buildTypeMeta } from "./utils/typeMeta";
 import { TransactionsHeader } from "./components/TransactionsHeader";
 import { SummarySection } from "./components/SummarySection";
@@ -43,6 +44,7 @@ export default function TransactionsScreen() {
   const typeMeta = buildTypeMeta(colors);
 
   const { session } = useSupabaseSession();
+  const { refreshAll } = useRefresh();
   
   // Filter state
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
@@ -116,6 +118,8 @@ export default function TransactionsScreen() {
 
                 Alert.alert("Success", "Transaction deleted successfully");
                 handleRefresh();
+                // Refresh all data (accounts, categories, stats) since transaction changed
+                refreshAll();
               } catch (error: any) {
                 Alert.alert(
                   "Error",
@@ -326,6 +330,8 @@ export default function TransactionsScreen() {
               setShowTransactionForm(false);
               setEditingTransaction(null);
               handleRefresh();
+              // Refresh all data (accounts, categories, stats) since transaction changed
+              refreshAll();
             }}
           />
         </BottomSheetModalProvider>

@@ -8,6 +8,7 @@ import {
   DateRangeFilter,
 } from "@/screens/transactions/utils/dateRange";
 import { getErrorMessage } from "@/utils";
+import { useRefresh } from "@/contexts/RefreshContext";
 
 // const INCOME_CATEGORY_COLORS = [
 //   "#1E5024",
@@ -133,6 +134,7 @@ export function useStatsData(
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { registerStatsRefresh } = useRefresh();
 
   // Calculate current date range based on period
   const currentDateRange = useMemo(() => {
@@ -180,10 +182,16 @@ export function useStatsData(
     }
   }, [session, fetchTransactions]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     setRefreshing(true);
     fetchTransactions();
-  };
+  }, [fetchTransactions]);
+
+  // Register refresh function with context
+  useEffect(() => {
+    const cleanup = registerStatsRefresh(handleRefresh);
+    return cleanup;
+  }, [handleRefresh, registerStatsRefresh]);
 
   // Process transactions into stats
   const statsData = useMemo((): StatsData => {

@@ -12,6 +12,7 @@ import { Stack } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSupabaseSession } from "@/hooks";
 import { useThemeColors } from "@/constants/theme";
+import { useRefresh } from "@/contexts/RefreshContext";
 import { buildTypeMeta } from "./utils/typeMeta";
 import { TransactionsList } from "./components/TransactionsList";
 import { SummarySection } from "./components/SummarySection";
@@ -27,6 +28,7 @@ export default function SearchTransactionsScreen() {
   const colors = useThemeColors();
   const typeMeta = buildTypeMeta(colors);
   const { session } = useSupabaseSession();
+  const { refreshAll } = useRefresh();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -113,6 +115,8 @@ export default function SearchTransactionsScreen() {
           prev.filter((t) => t.id !== transaction.id)
         );
         setShowActionSheet(false);
+        // Refresh all data (accounts, categories, stats) since transaction changed
+        refreshAll();
         setSelectedTransaction(null);
       } catch (error: any) {
         console.error("Error deleting transaction:", error);
@@ -294,6 +298,8 @@ export default function SearchTransactionsScreen() {
                 setShowTransactionForm(false);
                 setEditingTransaction(null);
                 fetchAllTransactions();
+                // Refresh all data (accounts, categories, stats) since transaction changed
+                refreshAll();
               }}
             />
           </BottomSheetModalProvider>
