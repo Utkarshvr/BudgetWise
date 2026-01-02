@@ -187,6 +187,28 @@ export default function TransactionFormScreen({
     }
   }, [formData.category_id, categories]);
 
+  // Auto-select account when accounts are loaded (only for new transactions)
+  useEffect(() => {
+    if (
+      !isEditing &&
+      accounts.length > 0 &&
+      !loadingAccounts &&
+      session?.user
+    ) {
+      // Only auto-select if no account is already selected for the current type
+      const needsFromAccount =
+        (formData.type === "expense" || formData.type === "transfer") &&
+        !formData.from_account_id;
+      const needsToAccount =
+        (formData.type === "income" || formData.type === "transfer") &&
+        !formData.to_account_id;
+
+      if (needsFromAccount || needsToAccount) {
+        autoSelectAccount(formData.type);
+      }
+    }
+  }, [accounts.length, isEditing, loadingAccounts, formData.type, formData.from_account_id, formData.to_account_id, session?.user]);
+
   const autoSelectAccount = async (type: TransactionType) => {
     if (accounts.length === 0) return;
 
@@ -196,7 +218,7 @@ export default function TransactionFormScreen({
         ? lastSelectedAccountId
         : accounts[0].id;
 
-    if (type === "expense" || type === "transfer") {
+    if (type === "expense") {
       setFormData((prev) => ({
         ...prev,
         from_account_id: accountToSelect,
@@ -204,6 +226,13 @@ export default function TransactionFormScreen({
     } else if (type === "income") {
       setFormData((prev) => ({
         ...prev,
+        to_account_id: accountToSelect,
+      }));
+    } else if (type === "transfer") {
+      // For transfer, select first account for both from and to
+      setFormData((prev) => ({
+        ...prev,
+        from_account_id: accountToSelect,
         to_account_id: accountToSelect,
       }));
     }
@@ -221,11 +250,6 @@ export default function TransactionFormScreen({
 
       if (error) throw error;
       setAccounts(data || []);
-
-      // Auto-select account after fetching accounts (only for new transactions)
-      if (!isEditing && data && data.length > 0) {
-        await autoSelectAccount(formData.type);
-      }
     } catch (error: any) {
       const errorMessage = getErrorMessage(error, "Failed to fetch accounts");
       showError(errorMessage);
