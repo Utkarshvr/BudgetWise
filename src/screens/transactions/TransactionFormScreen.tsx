@@ -27,7 +27,6 @@ import {
   CategoryReservation,
   CategoryFormData,
 } from "@/types/category";
-import { TransactionTypeSheet } from "./components/TransactionTypeSheet";
 import { AccountSelectSheet } from "./components/AccountSelectSheet";
 import { CategoryFormSheet } from "@/screens/categories/components/CategoryFormSheet";
 import { WithdrawFundsSheet } from "./components/WithdrawFundsSheet";
@@ -35,6 +34,10 @@ import { ACCOUNT_TYPE_ICONS, getTotalReserved } from "@/screens/accounts/utils";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
 import { getErrorMessage } from "@/utils";
 import { Toast } from "@/components/ui/Toast";
+import {
+  getLastSelectedAccountId,
+  setLastSelectedAccountId,
+} from "@/utils/accountStorage";
 
 type TransactionFormScreenProps = {
   initialAmount?: string;
@@ -61,7 +64,6 @@ export default function TransactionFormScreen({
   );
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [showTypeSheet, setShowTypeSheet] = useState(false);
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [accountSheetMode, setAccountSheetMode] = useState<"from" | "to">(
     "from"
@@ -185,6 +187,28 @@ export default function TransactionFormScreen({
     }
   }, [formData.category_id, categories]);
 
+  const autoSelectAccount = async (type: TransactionType) => {
+    if (accounts.length === 0) return;
+
+    const lastSelectedAccountId = await getLastSelectedAccountId();
+    const accountToSelect =
+      lastSelectedAccountId && accounts.find((a) => a.id === lastSelectedAccountId)
+        ? lastSelectedAccountId
+        : accounts[0].id;
+
+    if (type === "expense" || type === "transfer") {
+      setFormData((prev) => ({
+        ...prev,
+        from_account_id: accountToSelect,
+      }));
+    } else if (type === "income") {
+      setFormData((prev) => ({
+        ...prev,
+        to_account_id: accountToSelect,
+      }));
+    }
+  };
+
   const fetchAccounts = async () => {
     if (!session?.user) return;
 
@@ -197,6 +221,11 @@ export default function TransactionFormScreen({
 
       if (error) throw error;
       setAccounts(data || []);
+
+      // Auto-select account after fetching accounts (only for new transactions)
+      if (!isEditing && data && data.length > 0) {
+        await autoSelectAccount(formData.type);
+      }
     } catch (error: any) {
       const errorMessage = getErrorMessage(error, "Failed to fetch accounts");
       showError(errorMessage);
@@ -764,7 +793,7 @@ export default function TransactionFormScreen({
     setShowWithdrawSheet(false);
   };
 
-  const handleTypeChange = (type: TransactionType) => {
+  const handleTypeChange = async (type: TransactionType) => {
     setFormData({
       ...formData,
       type,
@@ -777,6 +806,11 @@ export default function TransactionFormScreen({
     setErrors({});
     if (type === "transfer") {
       setSelectedCategory(null);
+    }
+
+    // Auto-select account for the new type (only for new transactions)
+    if (!isEditing) {
+      await autoSelectAccount(type);
     }
   };
 
@@ -797,12 +831,14 @@ export default function TransactionFormScreen({
     }
   };
 
-  const handleAccountSelect = (account: Account) => {
+  const handleAccountSelect = async (account: Account) => {
     if (accountSheetMode === "from") {
       setFormData({ ...formData, from_account_id: account.id });
     } else {
       setFormData({ ...formData, to_account_id: account.id });
     }
+    // Store the selected account for future use
+    await setLastSelectedAccountId(account.id);
   };
 
   const openAccountSheet = (mode: "from" | "to") => {
@@ -1062,42 +1098,139 @@ export default function TransactionFormScreen({
             )}
           </View>
 
-          {/* Type Field */}
-          <TouchableOpacity
-            onPress={() => setShowTypeSheet(true)}
-            className="px-4 py-4 border-b"
+          {/* Type Field - Chips */}
+          <View
+            className="px-4 py-4 border-b flex-row items-center"
             style={{ borderBottomColor: colors.border }}
           >
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center flex-1">
-                <Text
-                  className="text-base w-16"
-                  style={{ color: colors.muted.foreground }}
-                >
-                  Type
-                </Text>
+            <Text
+              className="text-base"
+              style={{ 
+                color: colors.muted.foreground,
+                width: "20%"
+              }}
+            >
+              Type
+            </Text>
+            <View className="flex-row gap-2 flex-1">
+              {/* Expense Chip */}
+              <TouchableOpacity
+                onPress={() => handleTypeChange("expense")}
+                className="flex-1 py-1.5 px-3 rounded-full items-center justify-center flex-row gap-1.5"
+                style={{
+                  backgroundColor:
+                    formData.type === "expense"
+                      ? colors.transaction.expense.badgeBg
+                      : "transparent",
+                  borderWidth: 1,
+                  borderColor:
+                    formData.type === "expense"
+                      ? colors.transaction.expense.badgeIcon
+                      : colors.border,
+                }}
+              >
                 <MaterialIcons
-                  name={getTypeIcon() as any}
-                  size={20}
-                  color={getTypeIconColor()}
+                  name="arrow-outward"
+                  size={16}
+                  color={
+                    formData.type === "expense"
+                      ? colors.transaction.expense.badgeIcon
+                      : colors.muted.foreground
+                  }
+                />
+                <Text
+                  className="text-sm font-medium"
                   style={{
-                    marginRight: 8,
-                    transform: [
-                      {
-                        rotate: formData.type === "income" ? "180deg" : "0deg",
-                      },
-                    ],
+                    color:
+                      formData.type === "expense"
+                        ? colors.transaction.expense.badgeIcon
+                        : colors.muted.foreground,
+                  }}
+                >
+                  Expense
+                </Text>
+              </TouchableOpacity>
+
+              {/* Income Chip */}
+              <TouchableOpacity
+                onPress={() => handleTypeChange("income")}
+                className="flex-1 py-1.5 px-3 rounded-full items-center justify-center flex-row gap-1.5"
+                style={{
+                  backgroundColor:
+                    formData.type === "income"
+                      ? colors.transaction.income.badgeBg
+                      : "transparent",
+                  borderWidth: 1,
+                  borderColor:
+                    formData.type === "income"
+                      ? colors.transaction.income.badgeIcon
+                      : colors.border,
+                }}
+              >
+                <MaterialIcons
+                  name="arrow-outward"
+                  size={16}
+                  color={
+                    formData.type === "income"
+                      ? colors.transaction.income.badgeIcon
+                      : colors.muted.foreground
+                  }
+                  style={{
+                    transform: [{ rotate: "180deg" }],
                   }}
                 />
                 <Text
-                  className="text-base"
-                  style={{ color: colors.foreground }}
+                  className="text-sm font-medium"
+                  style={{
+                    color:
+                      formData.type === "income"
+                        ? colors.transaction.income.badgeIcon
+                        : colors.muted.foreground,
+                  }}
                 >
-                  {getTypeLabel()}
+                  Income
                 </Text>
-              </View>
+              </TouchableOpacity>
+
+              {/* Transfer Chip */}
+              <TouchableOpacity
+                onPress={() => handleTypeChange("transfer")}
+                className="flex-1 py-1.5 px-3 rounded-full items-center justify-center flex-row gap-1.5"
+                style={{
+                  backgroundColor:
+                    formData.type === "transfer"
+                      ? colors.transaction.transfer.badgeBg
+                      : "transparent",
+                  borderWidth: 1,
+                  borderColor:
+                    formData.type === "transfer"
+                      ? "#3b82f6"
+                      : colors.border,
+                }}
+              >
+                <MaterialIcons
+                  name="sync-alt"
+                  size={16}
+                  color={
+                    formData.type === "transfer"
+                      ? "#3b82f6"
+                      : colors.muted.foreground
+                  }
+                />
+                <Text
+                  className="text-sm font-medium"
+                  style={{
+                    color:
+                      formData.type === "transfer"
+                        ? "#3b82f6"
+                        : colors.muted.foreground,
+                  }}
+                >
+                  Transfer
+                </Text>
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </View>
 
           {/* From Account (for Expense and Transfer) */}
           {(formData.type === "expense" || formData.type === "transfer") && (
@@ -1353,14 +1486,6 @@ export default function TransactionFormScreen({
           </TouchableOpacity>
         </View>
       </SafeAreaView>
-
-      {/* Transaction Type Sheet */}
-      <TransactionTypeSheet
-        visible={showTypeSheet}
-        selectedType={formData.type}
-        onClose={() => setShowTypeSheet(false)}
-        onSelect={handleTypeChange}
-      />
 
       {/* Account Select Sheet */}
       <AccountSelectSheet
