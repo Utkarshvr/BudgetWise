@@ -229,11 +229,28 @@ export default function TransactionFormScreen({
         to_account_id: accountToSelect,
       }));
     } else if (type === "transfer") {
-      // For transfer, select first account for both from and to
+      // For transfer, select first account for "from" and a different account for "to"
+      const fromAccountId = accountToSelect;
+      // Find a different account for "to"
+      // If "from" is the first account, use the second account
+      // Otherwise, use the first account
+      let toAccountId: string;
+      if (accounts.length > 1) {
+        if (fromAccountId === accounts[0].id) {
+          toAccountId = accounts[1].id;
+        } else {
+          toAccountId = accounts[0].id;
+        }
+      } else {
+        // Only one account exists - can't set different accounts
+        // Set both to the same, user will need to change one manually
+        toAccountId = fromAccountId;
+      }
+
       setFormData((prev) => ({
         ...prev,
-        from_account_id: accountToSelect,
-        to_account_id: accountToSelect,
+        from_account_id: fromAccountId,
+        to_account_id: toAccountId,
       }));
     }
   };
