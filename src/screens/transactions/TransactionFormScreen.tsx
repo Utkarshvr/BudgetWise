@@ -873,10 +873,38 @@ export default function TransactionFormScreen({
   };
 
   const handleAccountSelect = async (account: Account) => {
-    if (accountSheetMode === "from") {
-      setFormData({ ...formData, from_account_id: account.id });
+    // For transfer type, implement swap logic
+    if (formData.type === "transfer") {
+      if (accountSheetMode === "from") {
+        // If selecting "from" account that's already set as "to", swap them
+        if (formData.to_account_id === account.id && formData.from_account_id) {
+          setFormData({
+            ...formData,
+            from_account_id: account.id,
+            to_account_id: formData.from_account_id, // Swap: old "from" becomes "to"
+          });
+        } else {
+          setFormData({ ...formData, from_account_id: account.id });
+        }
+      } else {
+        // If selecting "to" account that's already set as "from", swap them
+        if (formData.from_account_id === account.id && formData.to_account_id) {
+          setFormData({
+            ...formData,
+            to_account_id: account.id,
+            from_account_id: formData.to_account_id, // Swap: old "to" becomes "from"
+          });
+        } else {
+          setFormData({ ...formData, to_account_id: account.id });
+        }
+      }
     } else {
-      setFormData({ ...formData, to_account_id: account.id });
+      // For expense and income, just set the account normally
+      if (accountSheetMode === "from") {
+        setFormData({ ...formData, from_account_id: account.id });
+      } else {
+        setFormData({ ...formData, to_account_id: account.id });
+      }
     }
     // Store the selected account for future use
     await setLastSelectedAccountId(account.id);
@@ -1538,11 +1566,7 @@ export default function TransactionFormScreen({
             : formData.to_account_id
         }
         title={accountSheetMode === "from" ? "From Account" : "To Account"}
-        excludeAccountId={
-          formData.type === "transfer" && accountSheetMode === "to"
-            ? formData.from_account_id
-            : null
-        }
+        excludeAccountId={null}
         reservations={reservations}
         onClose={() => setShowAccountSheet(false)}
         onSelect={handleAccountSelect}
