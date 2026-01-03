@@ -42,7 +42,7 @@ export default function TransactionsScreen() {
   const typeMeta = buildTypeMeta(colors);
 
   const { session } = useSupabaseSession();
-  const { refreshAll } = useRefresh();
+  const { refreshAll, refreshAccounts } = useRefresh();
   
   // Filter state
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
@@ -113,10 +113,14 @@ export default function TransactionsScreen() {
 
                 if (error) throw error;
 
-                Alert.alert("Success", "Transaction deleted successfully");
+                // Refresh accounts immediately to update balances (before alert)
+                refreshAccounts();
+                // Refresh transactions list
                 handleRefresh();
-                // Refresh all data (accounts, categories, stats) since transaction changed
+                // Refresh all data (categories, stats) since transaction changed
                 refreshAll();
+                
+                Alert.alert("Success", "Transaction deleted successfully");
               } catch (error: any) {
                 Alert.alert(
                   "Error",

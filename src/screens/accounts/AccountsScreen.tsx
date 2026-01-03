@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { ScrollView, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "expo-router";
 import { useSupabaseSession } from "@/hooks";
 import { Account, AccountFormData } from "@/types/account";
 import { useThemeColors } from "@/constants/theme";
@@ -79,6 +80,13 @@ export default function AccountsScreen() {
       [accountId]: !prev[accountId],
     }));
   };
+
+  // Refresh accounts when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      handleRefresh();
+    }, [handleRefresh])
+  );
 
   const handleAdjust = (account: Account) => {
     setAdjustingAccount(account);

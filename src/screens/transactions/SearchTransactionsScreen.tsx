@@ -26,7 +26,7 @@ export default function SearchTransactionsScreen() {
   const colors = useThemeColors();
   const typeMeta = buildTypeMeta(colors);
   const { session } = useSupabaseSession();
-  const { refreshAll } = useRefresh();
+  const { refreshAll, refreshAccounts } = useRefresh();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -112,6 +112,8 @@ export default function SearchTransactionsScreen() {
           prev.filter((t) => t.id !== transaction.id)
         );
         setShowActionSheet(false);
+        // Refresh accounts immediately to update balances
+        refreshAccounts();
         // Refresh all data (accounts, categories, stats) since transaction changed
         refreshAll();
         setSelectedTransaction(null);
