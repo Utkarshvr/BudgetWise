@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSupabaseSession } from "@/hooks";
 import { useThemeColors } from "@/constants/theme";
@@ -20,11 +20,9 @@ import { EmptyState } from "./components/EmptyState";
 import { TransactionActionSheet } from "./components/TransactionActionSheet";
 import { Transaction } from "@/types/transaction";
 import { supabase } from "@/lib";
-import TransactionFormScreen from "./TransactionFormScreen";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { Modal } from "react-native";
 
 export default function SearchTransactionsScreen() {
+  const router = useRouter();
   const colors = useThemeColors();
   const typeMeta = buildTypeMeta(colors);
   const { session } = useSupabaseSession();
@@ -36,9 +34,6 @@ export default function SearchTransactionsScreen() {
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
-  const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [editingTransaction, setEditingTransaction] =
-    useState<Transaction | null>(null);
 
   // Fetch all transactions for search
   const fetchAllTransactions = useCallback(async () => {
@@ -94,10 +89,12 @@ export default function SearchTransactionsScreen() {
   }, []);
 
   const handleEditTransaction = useCallback((transaction: Transaction) => {
-    setEditingTransaction(transaction);
     setShowActionSheet(false);
-    setShowTransactionForm(true);
-  }, []);
+    router.push({
+      pathname: "/(auth)/transaction-form",
+      params: { transactionId: transaction.id },
+    });
+  }, [router]);
 
   const handleDeleteTransaction = useCallback(
     async (transaction: Transaction) => {
@@ -277,33 +274,6 @@ export default function SearchTransactionsScreen() {
           onDelete={handleDeleteTransaction}
         />
 
-        {/* Transaction Form Screen (for editing) */}
-        <Modal
-          visible={showTransactionForm}
-          animationType="slide"
-          presentationStyle="fullScreen"
-          onRequestClose={() => {
-            setShowTransactionForm(false);
-            setEditingTransaction(null);
-          }}
-        >
-          <BottomSheetModalProvider>
-            <TransactionFormScreen
-              transaction={editingTransaction}
-              onClose={() => {
-                setShowTransactionForm(false);
-                setEditingTransaction(null);
-              }}
-              onSuccess={() => {
-                setShowTransactionForm(false);
-                setEditingTransaction(null);
-                fetchAllTransactions();
-                // Refresh all data (accounts, categories, stats) since transaction changed
-                refreshAll();
-              }}
-            />
-          </BottomSheetModalProvider>
-        </Modal>
       </SafeAreaView>
     </>
   );

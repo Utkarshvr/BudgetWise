@@ -14,8 +14,10 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { supabase } from "@/lib";
 import { useSupabaseSession, useToast } from "@/hooks";
+import { useRefresh } from "@/contexts/RefreshContext";
 import { Account } from "@/types/account";
 import {
   Transaction,
@@ -39,23 +41,20 @@ import {
   setLastSelectedAccountId,
 } from "@/utils/accountStorage";
 
-type TransactionFormScreenProps = {
-  initialAmount?: string;
-  transaction?: Transaction | null; // For editing mode
-  onClose: () => void;
-  onSuccess: () => void;
-};
-
-export default function TransactionFormScreen({
-  initialAmount = "0.00",
-  transaction = null,
-  onClose,
-  onSuccess,
-}: TransactionFormScreenProps) {
+export default function TransactionFormScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    initialAmount?: string;
+    transactionId?: string;
+  }>();
+  const { refreshAll } = useRefresh();
   const { session } = useSupabaseSession();
   const insets = useSafeAreaInsets();
   const { toast, showError, showSuccess, showWarning, hideToast } = useToast();
-  const isEditing = !!transaction;
+  const [transaction, setTransaction] = useState<Transaction | null>(null);
+  const [loadingTransaction, setLoadingTransaction] = useState(false);
+  const isEditing = !!params.transactionId;
+  const initialAmount = params.initialAmount || "0.00";
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [reservations, setReservations] = useState<CategoryReservation[]>([]);
@@ -118,6 +117,13 @@ export default function TransactionFormScreen({
       fetchReservations();
     }
   }, [session]);
+
+  // Fetch transaction if transactionId is provided
+  useEffect(() => {
+    if (params.transactionId && session?.user) {
+      fetchTransaction(params.transactionId);
+    }
+  }, [params.transactionId, session?.user]);
 
   // Initialize form when transaction changes (for editing)
   useEffect(() => {
@@ -252,6 +258,29 @@ export default function TransactionFormScreen({
         from_account_id: fromAccountId,
         to_account_id: toAccountId,
       }));
+    }
+  };
+
+  const fetchTransaction = async (transactionId: string) => {
+    if (!session?.user) return;
+
+    setLoadingTransaction(true);
+    try {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("id", transactionId)
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (error) throw error;
+      setTransaction(data);
+    } catch (error: any) {
+      const errorMessage = getErrorMessage(error, "Failed to fetch transaction");
+      showError(errorMessage);
+      router.back();
+    } finally {
+      setLoadingTransaction(false);
     }
   };
 
@@ -745,8 +774,8 @@ export default function TransactionFormScreen({
         }
 
         showSuccess("Transaction updated");
-        onSuccess();
-        onClose();
+        refreshAll();
+        router.back();
       } else {
         // INSERT MODE: Create new transaction
         const { data, error } = await supabase
@@ -803,8 +832,8 @@ export default function TransactionFormScreen({
         }
 
         showSuccess("Transaction added");
-        onSuccess();
-        onClose();
+        refreshAll();
+        router.back();
       }
     } catch (error: any) {
       const errorMessage = getErrorMessage(
@@ -1049,7 +1078,7 @@ export default function TransactionFormScreen({
     transaction,
   ]);
 
-  if (loadingAccounts) {
+  if (loadingAccounts || loadingTransaction) {
     return (
       <SafeAreaView
         className="flex-1 items-center justify-center"
@@ -1077,7 +1106,7 @@ export default function TransactionFormScreen({
           className="flex-row items-center justify-between px-4 py-3"
           style={{ backgroundColor: colors.card.DEFAULT }}
         >
-          <TouchableOpacity onPress={onClose}>
+          <TouchableOpacity onPress={() => router.back()}>
             <MaterialIcons
               name="arrow-back"
               size={24}

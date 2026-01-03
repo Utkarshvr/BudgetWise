@@ -3,7 +3,6 @@ import {
   ScrollView,
   RefreshControl,
   Alert,
-  Modal,
   View,
   ActivityIndicator,
   Dimensions,
@@ -33,7 +32,6 @@ import { TransactionActionSheet } from "./components/TransactionActionSheet";
 import { FilterSheet } from "./components/FilterSheet";
 import { Transaction } from "@/types/transaction";
 import { supabase } from "@/lib";
-import TransactionFormScreen from "./TransactionFormScreen";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.4; // 40% of screen width
@@ -73,9 +71,6 @@ export default function TransactionsScreen() {
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
-  const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [editingTransaction, setEditingTransaction] =
-    useState<Transaction | null>(null);
 
   const handleTransactionPress = useCallback((transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -88,10 +83,12 @@ export default function TransactionsScreen() {
   }, []);
 
   const handleEditTransaction = useCallback((transaction: Transaction) => {
-    setEditingTransaction(transaction);
     setShowActionSheet(false);
-    setShowTransactionForm(true);
-  }, []);
+    router.push({
+      pathname: "/(auth)/transaction-form",
+      params: { transactionId: transaction.id },
+    });
+  }, [router]);
 
   const handleDeleteTransaction = useCallback(
     (transaction: Transaction) => {
@@ -309,33 +306,6 @@ export default function TransactionsScreen() {
         onApply={handleFilterApply}
       />
 
-      {/* Transaction Form Screen (for editing) */}
-      <Modal
-        visible={showTransactionForm}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={() => {
-          setShowTransactionForm(false);
-          setEditingTransaction(null);
-        }}
-      >
-        <BottomSheetModalProvider>
-          <TransactionFormScreen
-            transaction={editingTransaction}
-            onClose={() => {
-              setShowTransactionForm(false);
-              setEditingTransaction(null);
-            }}
-            onSuccess={() => {
-              setShowTransactionForm(false);
-              setEditingTransaction(null);
-              handleRefresh();
-              // Refresh all data (accounts, categories, stats) since transaction changed
-              refreshAll();
-            }}
-          />
-        </BottomSheetModalProvider>
-      </Modal>
     </SafeAreaView>
   );
 }
