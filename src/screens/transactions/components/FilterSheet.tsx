@@ -94,7 +94,7 @@ export function FilterSheet({
           *,
           from_account:accounts!from_account_id(id, name, type, currency),
           to_account:accounts!to_account_id(id, name, type, currency),
-          category:categories(id, name, emoji, background_color, category_type)
+          category:categories(id, name, emoji, background_color, category_type, parent_id, parent:categories!parent_id(id, name))
         `
           )
           .eq("user_id", session.user.id)
@@ -103,9 +103,29 @@ export function FilterSheet({
 
       if (transactionsError) throw transactionsError;
 
+      // Create a lookup map for parent categories
+      const categoriesMap = new Map<string, any>();
+      categoriesData?.forEach((cat) => {
+        categoriesMap.set(cat.id, cat);
+      });
+
+      // Enrich transactions with parent category information
+      const enrichedTransactions = (transactionsData || []).map((transaction: any) => {
+        if (transaction.category && transaction.category.parent_id) {
+          const parentCategory = categoriesMap.get(transaction.category.parent_id);
+          if (parentCategory) {
+            transaction.category.parent = {
+              id: parentCategory.id,
+              name: parentCategory.name,
+            };
+          }
+        }
+        return transaction;
+      });
+
       setAccounts(accountsData || []);
       setCategories(categoriesData || []);
-      setTransactions(transactionsData || []);
+      setTransactions(enrichedTransactions);
     } catch (error: any) {
       const errorMessage = getErrorMessage(
         error,

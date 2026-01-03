@@ -19,6 +19,7 @@ import { SummarySection } from "./components/SummarySection";
 import { EmptyState } from "./components/EmptyState";
 import { TransactionActionSheet } from "./components/TransactionActionSheet";
 import { Transaction } from "@/types/transaction";
+import { Category } from "@/types/category";
 import { supabase } from "@/lib";
 
 export default function SearchTransactionsScreen() {
@@ -44,6 +45,21 @@ export default function SearchTransactionsScreen() {
 
     setLoading(true);
     try {
+      // Fetch categories first to create a lookup map for parent categories
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from("categories")
+        .select("id, name, parent_id")
+        .eq("user_id", session.user.id);
+
+      if (categoriesError) throw categoriesError;
+
+      // Create a lookup map: categoryId -> category
+      const categoriesMap = new Map<string, Category>();
+      categoriesData?.forEach((cat) => {
+        categoriesMap.set(cat.id, cat as Category);
+      });
+
+      // Fetch transactions
       const { data, error } = await supabase
         .from("transactions")
         .select(
@@ -51,7 +67,7 @@ export default function SearchTransactionsScreen() {
           *,
           from_account:accounts!from_account_id(id, name, type, currency),
           to_account:accounts!to_account_id(id, name, type, currency),
-          category:categories(id, name, emoji, background_color, category_type)
+          category:categories(id, name, emoji, background_color, category_type, parent_id)
         `
         )
         .eq("user_id", session.user.id)
@@ -60,7 +76,22 @@ export default function SearchTransactionsScreen() {
         .limit(100); // Limit to 100 results for performance
 
       if (error) throw error;
-      setTransactions(data || []);
+
+      // Enrich transactions with parent category information
+      const enrichedTransactions = (data || []).map((transaction: any) => {
+        if (transaction.category && transaction.category.parent_id) {
+          const parentCategory = categoriesMap.get(transaction.category.parent_id);
+          if (parentCategory) {
+            transaction.category.parent = {
+              id: parentCategory.id,
+              name: parentCategory.name,
+            } as Category;
+          }
+        }
+        return transaction;
+      });
+
+      setTransactions(enrichedTransactions);
     } catch (error: any) {
       console.error("Error searching transactions:", error);
       setTransactions([]);

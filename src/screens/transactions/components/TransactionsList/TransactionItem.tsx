@@ -95,8 +95,11 @@ export function TransactionItem({
                   className="text-sm mt-1"
                   style={{ color: colors.muted.foreground }}
                 >
-                  {transaction.category?.name ||
-                    transaction.type.replace("_", " ").charAt(0).toUpperCase() +
+                  {transaction.category
+                    ? transaction.category.parent && transaction.category.parent.name
+                      ? `${transaction.category.parent.name}/${transaction.category.name}`
+                      : transaction.category.name
+                    : transaction.type.replace("_", " ").charAt(0).toUpperCase() +
                       transaction.type.replace("_", " ").slice(1)}
                 </Text>
               </View>

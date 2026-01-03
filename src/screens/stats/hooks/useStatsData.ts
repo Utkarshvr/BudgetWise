@@ -3,6 +3,7 @@ import { Session } from "@supabase/supabase-js";
 import { Alert } from "react-native";
 import { supabase } from "@/lib";
 import { Transaction } from "@/types/transaction";
+import { Category } from "@/types/category";
 import {
   getDateRangeForPeriod,
   DateRangeFilter,
@@ -149,12 +150,27 @@ export function useStatsData(
     setLoading(true);
 
     try {
+      // Fetch categories first to create a lookup map for parent categories
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from("categories")
+        .select("id, name, parent_id")
+        .eq("user_id", session.user.id);
+
+      if (categoriesError) throw categoriesError;
+
+      // Create a lookup map: categoryId -> category
+      const categoriesMap = new Map<string, Category>();
+      categoriesData?.forEach((cat) => {
+        categoriesMap.set(cat.id, cat as Category);
+      });
+
+      // Fetch transactions
       const { data, error } = await supabase
         .from("transactions")
         .select(
           `
           *,
-          category:categories(id, name, emoji, background_color, category_type)
+          category:categories(id, name, emoji, background_color, category_type, parent_id)
         `
         )
         .eq("user_id", session.user.id)
@@ -163,7 +179,22 @@ export function useStatsData(
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setTransactions(data || []);
+
+      // Enrich transactions with parent category information
+      const enrichedTransactions = (data || []).map((transaction: any) => {
+        if (transaction.category && transaction.category.parent_id) {
+          const parentCategory = categoriesMap.get(transaction.category.parent_id);
+          if (parentCategory) {
+            transaction.category.parent = {
+              id: parentCategory.id,
+              name: parentCategory.name,
+            } as Category;
+          }
+        }
+        return transaction;
+      });
+
+      setTransactions(enrichedTransactions);
     } catch (error: any) {
       const errorMessage = getErrorMessage(
         error,
