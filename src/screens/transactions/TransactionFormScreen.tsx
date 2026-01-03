@@ -187,7 +187,13 @@ export default function TransactionFormScreen() {
   useEffect(() => {
     if (formData.category_id) {
       const category = categories.find((c) => c.id === formData.category_id);
-      setSelectedCategory(category || null);
+      // If the selected category is a parent category, clear the selection
+      if (category && category.is_parent_category === true) {
+        setSelectedCategory(null);
+        setFormData((prev) => ({ ...prev, category_id: null }));
+      } else {
+        setSelectedCategory(category || null);
+      }
     } else {
       setSelectedCategory(null);
     }
@@ -885,6 +891,11 @@ export default function TransactionFormScreen() {
   };
 
   const handleCategorySelect = (category: Category | null) => {
+    // Prevent selecting parent categories (they're just for grouping)
+    if (category && category.is_parent_category === true) {
+      return;
+    }
+
     // If clicking on the already selected category, deselect it
     if (selectedCategory?.id === category?.id) {
       setSelectedCategory(null);
@@ -1029,7 +1040,7 @@ export default function TransactionFormScreen() {
     return account ? getAccountTypeColor(account.type) : colors.muted.foreground;
   };
 
-  // Categories to display based on transaction type
+  // Categories to display based on transaction type, organized hierarchically
   const displayCategories = useMemo(() => {
     if (formData.type === "transfer") {
       return [];
@@ -1037,38 +1048,105 @@ export default function TransactionFormScreen() {
 
     const categoryType = formData.type === "income" ? "income" : "expense";
 
-    return categories
-      .filter((c) => c.category_type === categoryType)
-      .map((category) => {
-        let amountLeft: number | null = null;
+    // Filter categories by type and exclude parent categories (they can't be selected)
+    const allCategories = categories.filter(
+      (c) => c.category_type === categoryType && c.is_parent_category !== true
+    );
 
-        if (formData.type === "expense" && formData.from_account_id) {
-          const reservation = reservations.find(
-            (r) =>
-              r.category_id === category.id &&
-              r.account_id === formData.from_account_id
-          );
+    // Separate parent categories (for grouping), child categories, and normal categories
+    const parentCategories = categories.filter(
+      (c) => c.category_type === categoryType && c.is_parent_category === true
+    );
+    const childCategories = allCategories.filter((c) => c.parent_id);
+    const normalCategories = allCategories.filter((c) => !c.parent_id);
 
-          // Only set amountLeft if reservation exists (even if amount is 0)
-          // If no reservation exists, keep it null (don't show "left" text)
-          if (reservation) {
-            // For editing, add back the old amount if it's the same category/account
-            const oldAmount =
-              isEditing &&
-              transaction?.type === "expense" &&
-              transaction.category_id === category.id &&
-              transaction.from_account_id === formData.from_account_id
-                ? transaction.amount
-                : 0;
-            amountLeft = (reservation.reserved_amount + oldAmount) / 100;
-          }
+    // Group children by parent_id
+    const childrenByParent: Record<string, typeof allCategories> = {};
+    childCategories.forEach((child) => {
+      if (child.parent_id) {
+        if (!childrenByParent[child.parent_id]) {
+          childrenByParent[child.parent_id] = [];
         }
+        childrenByParent[child.parent_id].push(child);
+      }
+    });
 
-        return {
-          category,
-          amountLeft,
-        };
+    // Build the display structure: parent categories with their children, plus normal categories
+    const result: Array<{
+      type: "parent" | "child" | "normal";
+      category: Category;
+      amountLeft: number | null;
+      parentCategory?: Category;
+    }> = [];
+
+    // Add parent categories with their children
+    parentCategories.forEach((parent) => {
+      const children = childrenByParent[parent.id] || [];
+      if (children.length > 0) {
+        // Add parent as a header (non-selectable)
+        result.push({
+          type: "parent",
+          category: parent,
+          amountLeft: null,
+        });
+        // Add children under this parent
+        children.forEach((child) => {
+          let amountLeft: number | null = null;
+          if (formData.type === "expense" && formData.from_account_id) {
+            const reservation = reservations.find(
+              (r) =>
+                r.category_id === child.id &&
+                r.account_id === formData.from_account_id
+            );
+            if (reservation) {
+              const oldAmount =
+                isEditing &&
+                transaction?.type === "expense" &&
+                transaction.category_id === child.id &&
+                transaction.from_account_id === formData.from_account_id
+                  ? transaction.amount
+                  : 0;
+              amountLeft = (reservation.reserved_amount + oldAmount) / 100;
+            }
+          }
+          result.push({
+            type: "child",
+            category: child,
+            amountLeft,
+            parentCategory: parent,
+          });
+        });
+      }
+    });
+
+    // Add normal categories (not children, not parents)
+    normalCategories.forEach((category) => {
+      let amountLeft: number | null = null;
+      if (formData.type === "expense" && formData.from_account_id) {
+        const reservation = reservations.find(
+          (r) =>
+            r.category_id === category.id &&
+            r.account_id === formData.from_account_id
+        );
+        if (reservation) {
+          const oldAmount =
+            isEditing &&
+            transaction?.type === "expense" &&
+            transaction.category_id === category.id &&
+            transaction.from_account_id === formData.from_account_id
+              ? transaction.amount
+              : 0;
+          amountLeft = (reservation.reserved_amount + oldAmount) / 100;
+        }
+      }
+      result.push({
+        type: "normal",
+        category,
+        amountLeft,
       });
+    });
+
+    return result;
   }, [
     categories,
     reservations,
@@ -1468,81 +1546,110 @@ export default function TransactionFormScreen() {
                 </TouchableOpacity>
               </View>
               {displayCategories.length > 0 ? (
-                displayCategories.map(({ category, amountLeft }) => (
-                  <View
-                    key={category.id}
-                    className="flex-row items-center justify-between mb-4"
-                  >
-                    <TouchableOpacity
-                      onPress={() => handleCategorySelect(category)}
-                      className="flex-row items-center flex-1"
+                displayCategories.map(({ type, category, amountLeft, parentCategory }) => {
+                  // Parent category header (non-selectable)
+                  if (type === "parent") {
+                    return (
+                      <View
+                        key={category.id}
+                        className="mb-3 mt-2"
+                      >
+                        <View className="flex-row items-center mb-2">
+                          <View
+                            className="w-8 h-8 rounded-lg items-center justify-center mr-2"
+                            style={{ backgroundColor: categoryBgColor }}
+                          >
+                            <Text style={{ fontSize: 18 }}>{category.emoji}</Text>
+                          </View>
+                          <Text
+                            className="text-sm font-semibold uppercase"
+                            style={{ color: colors.muted.foreground }}
+                          >
+                            {category.name}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  }
+
+                  // Child or normal category (selectable)
+                  const isChild = type === "child";
+                  return (
+                    <View
+                      key={category.id}
+                      className={`flex-row items-center justify-between mb-4 ${isChild ? "ml-6" : ""}`}
                     >
-                      <View
-                        className="w-12 h-12 rounded-xl items-center justify-center mr-3"
-                        style={{ backgroundColor: categoryBgColor }}
-                      >
-                        <Text style={{ fontSize: 24 }}>{category.emoji}</Text>
-                      </View>
-                      <View
-                        className={`flex-1 ${
-                          formData.type === "expense" &&
-                          formData.from_account_id &&
-                          amountLeft !== null
-                            ? ""
-                            : "justify-center"
-                        }`}
-                      >
-                        <Text
-                          className="text-base font-medium"
-                          style={{ color: colors.foreground }}
-                        >
-                          {category.name}
-                        </Text>
-                        {formData.type === "expense" &&
-                          formData.from_account_id &&
-                          amountLeft !== null && (
-                            <Text
-                              className="text-sm"
-                              style={{ color: colors.muted.foreground }}
-                            >
-                              {`₹${amountLeft.toFixed(2)} left`}
-                            </Text>
-                          )}
-                      </View>
                       <TouchableOpacity
-                        onPress={() => handleEditCategory(category)}
-                        className="p-2 mr-2"
+                        onPress={() => handleCategorySelect(category)}
+                        className="flex-row items-center flex-1"
                       >
-                        <MaterialIcons
-                          name="edit"
-                          size={18}
-                          color={colors.muted.foreground}
-                        />
-                      </TouchableOpacity>
-                      <View
-                        className="w-6 h-6 rounded-full border-2 items-center justify-center"
-                        style={{
-                          borderColor:
-                            selectedCategory?.id === category.id
-                              ? colors.primary.DEFAULT
-                              : colors.muted.foreground,
-                          backgroundColor:
-                            selectedCategory?.id === category.id
-                              ? colors.primary.DEFAULT
-                              : "transparent",
-                        }}
-                      >
-                        {selectedCategory?.id === category.id && (
+                        <View
+                          className="w-12 h-12 rounded-xl items-center justify-center mr-3"
+                          style={{ backgroundColor: categoryBgColor }}
+                        >
+                          <Text style={{ fontSize: 24 }}>{category.emoji}</Text>
+                        </View>
+                        <View
+                          className={`flex-1 ${
+                            formData.type === "expense" &&
+                            formData.from_account_id &&
+                            amountLeft !== null
+                              ? ""
+                              : "justify-center"
+                          }`}
+                        >
+                          <Text
+                            className="text-base font-medium"
+                            style={{ color: colors.foreground }}
+                          >
+                            {category.name}
+                          </Text>
+                          {formData.type === "expense" &&
+                            formData.from_account_id &&
+                            amountLeft !== null && (
+                              <Text
+                                className="text-sm"
+                                style={{ color: colors.muted.foreground }}
+                              >
+                                {`₹${amountLeft.toFixed(2)} left`}
+                              </Text>
+                            )}
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => handleEditCategory(category)}
+                          className="p-2 mr-2"
+                        >
                           <MaterialIcons
-                            name="check"
-                            size={16}
-                            color={colors.white}
+                            name="edit"
+                            size={18}
+                            color={colors.muted.foreground}
                           />
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-                ))
+                        </TouchableOpacity>
+                        <View
+                          className="w-6 h-6 rounded-full border-2 items-center justify-center"
+                          style={{
+                            borderColor:
+                              selectedCategory?.id === category.id
+                                ? colors.primary.DEFAULT
+                                : colors.muted.foreground,
+                            backgroundColor:
+                              selectedCategory?.id === category.id
+                                ? colors.primary.DEFAULT
+                                : "transparent",
+                          }}
+                        >
+                          {selectedCategory?.id === category.id && (
+                            <MaterialIcons
+                              name="check"
+                              size={16}
+                              color={colors.white}
+                            />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })
               ) : (
                 <View className="py-4">
                   <Text
