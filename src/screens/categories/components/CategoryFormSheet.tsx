@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Alert, useColorScheme } from "react-native";
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
@@ -7,7 +7,6 @@ import {
 } from "@gorhom/bottom-sheet";
 import { MaterialIcons } from "@expo/vector-icons";
 import EmojiPicker from "rn-emoji-keyboard";
-import { useColorScheme } from "react-native";
 import { Category, CategoryFormData } from "@/types/category";
 import { PrimaryButton } from "@/components/ui";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
@@ -19,6 +18,7 @@ type CategoryFormSheetProps = {
   visible: boolean;
   category: Category | null;
   defaultCategoryType?: "income" | "expense"; // Default type when creating new category
+  createAsGroup?: boolean;
   onClose: () => void;
   onSubmit: (data: CategoryFormData) => Promise<void>;
   loading?: boolean;
@@ -29,6 +29,7 @@ export function CategoryFormSheet({
   visible,
   category,
   defaultCategoryType = "expense",
+  createAsGroup = false,
   onClose,
   onSubmit,
   loading = false,
@@ -107,6 +108,8 @@ export function CategoryFormSheet({
   const [newParentName, setNewParentName] = useState("");
   const [newParentEmoji, setNewParentEmoji] = useState("📁");
   const [creatingParent, setCreatingParent] = useState(false);
+  const isEditingGroup = category?.is_parent_category === true;
+  const shouldShowParentSelection = !createAsGroup && !isEditingGroup;
 
   useEffect(() => {
     if (visible) {
@@ -295,7 +298,13 @@ export function CategoryFormSheet({
               className="text-xl font-semibold"
               style={{ color: colors.foreground }}
             >
-              {category ? "Edit Category" : "New Category"}
+              {category
+                ? category.is_parent_category
+                  ? "Edit Group"
+                  : "Edit Category"
+                : createAsGroup
+                ? "New Group"
+                : "New Category"}
             </Text>
             <TouchableOpacity onPress={onClose}>
               <MaterialIcons
@@ -337,7 +346,7 @@ export function CategoryFormSheet({
             onChangeText={(text) => {
               nameValueRef.current = text;
             }}
-            placeholder="e.g., Groceries, Travel"
+            placeholder={createAsGroup ? "e.g., Self Care, Eating Out" : "e.g., Groceries, Travel"}
             placeholderTextColor={colors.muted.foreground}
             className="rounded-2xl px-4 py-3 text-base mb-4"
             style={{
@@ -417,14 +426,16 @@ export function CategoryFormSheet({
           )}
 
           {/* Parent Category Selection */}
-          <Text
-            className="text-sm mb-3"
-            style={{ color: colors.muted.foreground }}
-          >
-            Parent Category (Optional)
-          </Text>
-          {!showCreateParent ? (
+          {shouldShowParentSelection && (
             <>
+              <Text
+                className="text-sm mb-3"
+                style={{ color: colors.muted.foreground }}
+              >
+                Put this category inside a group (optional)
+              </Text>
+              {!showCreateParent ? (
+                <>
               <TouchableOpacity
                 onPress={() => setShowParentPicker(!showParentPicker)}
                 className="rounded-2xl px-4 py-3 mb-3 flex-row items-center justify-between"
@@ -557,7 +568,7 @@ export function CategoryFormSheet({
                       className="text-sm ml-3"
                       style={{ color: colors.primary.DEFAULT }}
                     >
-                      Create New Parent Category
+                      Create New Group
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -573,7 +584,7 @@ export function CategoryFormSheet({
                   className="text-sm mb-3"
                   style={{ color: colors.muted.foreground }}
                 >
-                  Create Parent Category
+                  Create New Group
                 </Text>
 
                 <View className="items-center mb-4">
@@ -590,7 +601,7 @@ export function CategoryFormSheet({
                   className="text-xs mb-2"
                   style={{ color: colors.muted.foreground }}
                 >
-                  Parent Name
+                  Group Name
                 </Text>
                 <TextInput
                   value={newParentName}
@@ -643,9 +654,17 @@ export function CategoryFormSheet({
               </View>
             </>
           )}
+            </>
+          )}
 
           <PrimaryButton
-            label={category ? "Save Changes" : "Create Category"}
+            label={
+              category
+                ? "Save Changes"
+                : createAsGroup
+                ? "Create Group"
+                : "Create Category"
+            }
             onPress={handleSubmit}
             loading={loading}
           />

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Alert, RefreshControl, ScrollView, View } from "react-native";
+import { Alert, RefreshControl, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "@/lib";
 import { useSupabaseSession } from "@/hooks";
@@ -17,6 +17,7 @@ import { CategoryList } from "./components/CategoryList";
 import { FullScreenLoader } from "@/components/ui";
 import { getTotalReserved as getTotalReservedForAccount } from "@/screens/accounts/utils/accountHelpers";
 import { getErrorMessage } from "@/utils";
+import { getFundCategoryId, isGroupCategory } from "./utils";
 
 export default function CategoriesScreen() {
   const colors = useThemeColors();
@@ -49,6 +50,7 @@ export default function CategoriesScreen() {
   const [parentSelectSheetVisible, setParentSelectSheetVisible] = useState(false);
   const [categoryToMove, setCategoryToMove] = useState<Category | null>(null);
   const [movingCategory, setMovingCategory] = useState(false);
+  const [createAsGroup, setCreateAsGroup] = useState(false);
 
   const accountUnreserved = useMemo(() => {
     const map: Record<string, number> = {};
@@ -63,6 +65,13 @@ export default function CategoriesScreen() {
   }, [accounts, reservations]);
 
   const handleAddCategory = () => {
+    setCreateAsGroup(false);
+    setEditingCategory(null);
+    setFormSheetVisible(true);
+  };
+
+  const handleAddGroup = () => {
+    setCreateAsGroup(true);
     setEditingCategory(null);
     setFormSheetVisible(true);
   };
@@ -191,7 +200,9 @@ export default function CategoriesScreen() {
             name: trimmedName,
             emoji: formData.emoji,
             background_color: formData.background_color,
-            parent_id: formData.parent_id || null,
+            parent_id: isGroupCategory(editingCategory)
+              ? null
+              : formData.parent_id || null,
             // Don't update category_type when editing
           })
           .eq("id", editingCategory.id);
@@ -204,6 +215,7 @@ export default function CategoriesScreen() {
           emoji: formData.emoji,
           background_color: formData.background_color,
           category_type: formData.category_type,
+          is_parent_category: createAsGroup,
           parent_id: formData.parent_id || null,
         });
 
@@ -222,15 +234,9 @@ export default function CategoriesScreen() {
   };
 
   const handleManageReservations = (category: Category) => {
-    // Check if this is a parent category
-    if (category.is_parent_category === true) {
-      Alert.alert(
-        "Parent Category",
-        "Parent categories don't hold funds directly. Manage funds for individual child categories instead."
-      );
-      return;
-    }
-    setSelectedCategoryForReservation(category);
+    const fundCategoryId = getFundCategoryId(category);
+    const fundCategory = categories.find((cat) => cat.id === fundCategoryId) || category;
+    setSelectedCategoryForReservation(fundCategory);
     setReservationSheetVisible(true);
   };
 
@@ -295,7 +301,10 @@ export default function CategoriesScreen() {
           />
         }
       >
-        <CategoriesHeader onAddCategory={handleAddCategory} />
+        <CategoriesHeader
+          onAddCategory={handleAddCategory}
+          onAddGroup={handleAddGroup}
+        />
 
         <CategoriesTabs activeTab={activeTab} onChangeTab={setActiveTab} />
 
@@ -308,7 +317,6 @@ export default function CategoriesScreen() {
           <CategoryList
             categories={filteredCategories}
             accounts={accounts}
-            reservations={reservations}
             expandedCategories={expandedCategories}
             onToggleCategory={toggleCategory}
             onShowActions={handleShowActions}
@@ -328,6 +336,7 @@ export default function CategoriesScreen() {
         onSubmit={handleSubmitCategory}
         loading={submitting}
         allCategories={categories}
+        createAsGroup={createAsGroup}
       />
 
       <CategoryReservationSheet

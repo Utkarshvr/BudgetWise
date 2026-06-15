@@ -2,7 +2,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Category, CategoryReservation } from "@/types/category";
 import { Account } from "@/types/account";
-import { formatBalance, formatDate } from "../../utils";
+import { formatBalance, formatDate, getFundCategoryId } from "../../utils";
 import { CategoryDetails } from "./CategoryDetails";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
 
@@ -16,7 +16,7 @@ type CategoryCardProps = {
   onEditCategory: () => void;
   accounts: Account[];
   onManageReservations: () => void;
-  children?: Category[];
+  childCategories?: Category[];
   getReservationsForCategory?: (id: string) => CategoryReservation[];
   getTotalReserved?: (id: string) => number;
   onToggleChild?: (child: Category) => void;
@@ -36,7 +36,7 @@ export function CategoryCard({
   onEditCategory,
   accounts,
   onManageReservations,
-  children = [],
+  childCategories = [],
   getReservationsForCategory,
   getTotalReserved,
   onToggleChild,
@@ -49,8 +49,6 @@ export function CategoryCard({
   const categoryBgColor = getCategoryBackgroundColor(colors);
   const isParent = category.is_parent_category === true;
   const isReserved = categoryReservations.length > 0 || totalReserved > 0;
-  // For parent categories, get currency from children's reservations
-  // For regular categories, get from their own reservations
   const fundCurrency = categoryReservations.length > 0
     ? categoryReservations[0]?.currency || "INR"
     : "INR";
@@ -103,7 +101,7 @@ export function CategoryCard({
                   className="text-xs font-medium"
                   style={{ color: colors.muted.foreground }}
                 >
-                  {isParent ? "No funds in children" : "No fund"}
+                  {isParent ? "No reserved funds" : "No fund"}
                 </Text>
               </View>
             )}
@@ -153,14 +151,16 @@ export function CategoryCard({
                   className="text-xs mb-3"
                   style={{ color: colors.muted.foreground }}
                 >
-                  {children.length} categor{children.length === 1 ? "y" : "ies"}
+                  {childCategories.length} categor{childCategories.length === 1 ? "y" : "ies"}
                 </Text>
-                {children.map((child, index) => {
+                {childCategories.map((child, index) => {
+                  const childFundCategoryId = getFundCategoryId(child);
+                  const childFundCategory = childFundCategoryId === child.id ? null : category;
                   const childReservations = getReservationsForCategory
-                    ? getReservationsForCategory(child.id)
+                    ? getReservationsForCategory(childFundCategoryId)
                     : [];
                   const childTotalReserved = getTotalReserved
-                    ? getTotalReserved(child.id)
+                    ? getTotalReserved(childFundCategoryId)
                     : 0;
                   const isChildExpanded = !!expandedChildren[child.id];
                   const childIsReserved = childReservations.length > 0;
@@ -270,6 +270,7 @@ export function CategoryCard({
                               }
                               onEditCategory={() => onEditChildCategory?.(child)}
                               isParent={false}
+                              fundedByParentName={childFundCategory?.name || null}
                             />
                           </View>
                         </>

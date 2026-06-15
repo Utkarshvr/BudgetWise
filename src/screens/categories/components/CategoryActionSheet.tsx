@@ -164,7 +164,7 @@ export function CategoryActionSheet({
                   style={styles.actionIcon}
                 />
                 <Text style={[styles.actionText, { color: colors.foreground }]}>
-                  Move to Parent
+                  Move to Group
                 </Text>
               </TouchableOpacity>
             )}

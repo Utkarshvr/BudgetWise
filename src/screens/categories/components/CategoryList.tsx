@@ -7,7 +7,6 @@ import { CategoryCard } from "./CategoryCard/CategoryCard";
 type CategoryListProps = {
   categories: Category[];
   accounts: Account[];
-  reservations: CategoryReservation[];
   expandedCategories: Record<string, boolean>;
   onToggleCategory: (category: Category) => void;
   onShowActions: (category: Category) => void;
@@ -20,7 +19,6 @@ type CategoryListProps = {
 export function CategoryList({
   categories,
   accounts,
-  reservations,
   expandedCategories,
   onToggleCategory,
   onShowActions,
@@ -68,34 +66,11 @@ export function CategoryList({
     return [...parentItems, ...normalItems];
   }, [categories]);
 
-  // Calculate total reserved for a parent category (sum of all children)
-  const getParentTotalReserved = (parentId: string): number => {
-    const children = categories.filter((cat) => cat.parent_id === parentId);
-    return children.reduce((total, child) => {
-      return total + getTotalReserved(child.id);
-    }, 0);
-  };
-
-  // Get all reservations for children of a parent
-  const getParentReservations = (parentId: string): CategoryReservation[] => {
-    const children = categories.filter((cat) => cat.parent_id === parentId);
-    const allReservations: CategoryReservation[] = [];
-    children.forEach((child) => {
-      allReservations.push(...getReservationsForCategory(child.id));
-    });
-    return allReservations;
-  };
-
   return (
     <View>
       {organizedCategories.map(({ parent, children }) => {
-        const isParent = parent.is_parent_category === true;
-        const categoryReservations = isParent
-          ? getParentReservations(parent.id)
-          : getReservationsForCategory(parent.id);
-        const totalReserved = isParent
-          ? getParentTotalReserved(parent.id)
-          : getTotalReserved(parent.id);
+        const categoryReservations = getReservationsForCategory(parent.id);
+        const totalReserved = getTotalReserved(parent.id);
         const isExpanded = !!expandedCategories[parent.id];
 
         return (
@@ -110,7 +85,7 @@ export function CategoryList({
             onEditCategory={() => onEditCategory(parent)}
             accounts={accounts}
             onManageReservations={() => onManageReservations(parent)}
-            children={children}
+            childCategories={children}
             getReservationsForCategory={getReservationsForCategory}
             getTotalReserved={getTotalReserved}
             onToggleChild={(child) => onToggleCategory(child)}

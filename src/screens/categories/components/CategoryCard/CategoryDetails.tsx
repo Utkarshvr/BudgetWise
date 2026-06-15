@@ -13,6 +13,7 @@ type CategoryDetailsProps = {
   onManageReservations: () => void;
   onEditCategory?: () => void;
   isParent?: boolean;
+  fundedByParentName?: string | null;
 };
 
 export function CategoryDetails({
@@ -23,19 +24,19 @@ export function CategoryDetails({
   onManageReservations,
   onEditCategory,
   isParent = false,
+  fundedByParentName,
 }: CategoryDetailsProps) {
   const colors = useThemeColors();
   const isReserved = categoryReservations.length > 0;
 
-  // Parent categories can't hold money directly
-  if (isParent) {
+  if (fundedByParentName) {
     return (
       <View className="mt-3">
         <Text
           className="text-sm"
           style={{ color: colors.muted.foreground }}
         >
-          Parent categories don't hold funds directly. The total shown is the sum of all child categories' funds.
+          This category uses funds from {fundedByParentName}. Manage funds on the group.
         </Text>
         <View className="flex-row mt-3">
           <TouchableOpacity
@@ -48,7 +49,7 @@ export function CategoryDetails({
               className="text-sm font-semibold ml-2"
               style={{ color: colors.foreground }}
             >
-              Edit Category
+              Edit
             </Text>
           </TouchableOpacity>
         </View>
@@ -63,7 +64,7 @@ export function CategoryDetails({
           className="text-xs"
           style={{ color: colors.muted.foreground }}
         >
-          Income categories don't hold funds. Use them to classify incoming
+          Income categories do not hold funds. Use them to classify incoming
           money.
         </Text>
         <View className="flex-row mt-3">
@@ -115,7 +116,6 @@ export function CategoryDetails({
   }
 
   const currency = categoryReservations[0]?.currency || "INR";
-  const multiAccount = categoryReservations.length > 1;
 
   return (
     <View className="mt-3">

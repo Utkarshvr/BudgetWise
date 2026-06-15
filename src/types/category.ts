@@ -8,8 +8,8 @@ export interface Category {
   background_color: string;
   category_type: CategoryType;
   is_archived?: boolean;
-  is_parent_category?: boolean; // True if this is a parent category (can have children, can't hold funds)
-  parent_id?: string | null; // Reference to parent category. NULL means top-level. Only categories with is_parent_category=true can be parents.
+  is_parent_category?: boolean; // True if this is a group that can contain children and hold shared funds
+  parent_id?: string | null; // Reference to parent group. Children spend from the group's reserved funds.
   // Relations (optional, populated when needed)
   parent?: Category | null; // Parent category object (when fetched with relation)
   // Legacy fund fields (keeping for backward compatibility, but not used in new system)

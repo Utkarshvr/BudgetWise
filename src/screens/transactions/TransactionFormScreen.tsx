@@ -33,6 +33,7 @@ import { AccountSelectSheet } from "./components/AccountSelectSheet";
 import { CategoryFormSheet } from "@/screens/categories/components/CategoryFormSheet";
 import { WithdrawFundsSheet } from "./components/WithdrawFundsSheet";
 import { ACCOUNT_TYPE_ICONS, getTotalReserved } from "@/screens/accounts/utils";
+import { getFundCategoryId } from "@/screens/categories/utils";
 import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
 import { getErrorMessage } from "@/utils";
 import { Toast } from "@/components/ui/Toast";
@@ -522,9 +523,10 @@ export default function TransactionFormScreen() {
             // Check if category has reservation and validate amount against spendable + reserved
             // (We allow transactions that exceed reserved amount as long as spendable + reserved is enough)
             if (selectedCategory) {
+              const fundCategoryId = getFundCategoryId(selectedCategory);
               const reservation = reservations.find(
                 (r) =>
-                  r.category_id === selectedCategory.id &&
+                  r.category_id === fundCategoryId &&
                   r.account_id === formData.from_account_id
               );
 
@@ -625,9 +627,11 @@ export default function TransactionFormScreen() {
         let availableForTransaction = spendable;
         let categoryReservation = null;
         if (formData.category_id) {
+          const selected = categories.find((c) => c.id === formData.category_id);
+          const fundCategoryId = selected ? getFundCategoryId(selected) : formData.category_id;
           categoryReservation = reservations.find(
             (r) =>
-              r.category_id === formData.category_id &&
+              r.category_id === fundCategoryId &&
               r.account_id === account.id
           );
           if (categoryReservation) {
@@ -649,7 +653,7 @@ export default function TransactionFormScreen() {
             (r) => 
               r.account_id === account.id && 
               r.reserved_amount > 0 &&
-              r.category_id !== formData.category_id // Exclude selected category
+              r.category_id !== (selected ? getFundCategoryId(selected) : formData.category_id) // Exclude selected fund pool
           );
 
           if (hasOtherReservations) {
@@ -717,16 +721,18 @@ export default function TransactionFormScreen() {
           oldCategoryId &&
           oldFromAccountId
         ) {
+          const oldCategory = categories.find((c) => c.id === oldCategoryId);
+          const oldFundCategoryId = oldCategory ? getFundCategoryId(oldCategory) : oldCategoryId;
           // Add back the old amount to reservation
           const oldReservation = reservations.find(
             (r) =>
-              r.category_id === oldCategoryId &&
+              r.category_id === oldFundCategoryId &&
               r.account_id === oldFromAccountId
           );
 
           if (oldReservation) {
             await supabase.rpc("adjust_category_reservation", {
-              p_category_id: oldCategoryId,
+              p_category_id: oldFundCategoryId,
               p_account_id: oldFromAccountId,
               p_amount_delta: oldAmount, // Add back the old amount
             });
@@ -741,9 +747,10 @@ export default function TransactionFormScreen() {
           selectedCategory &&
           formData.from_account_id
         ) {
+          const fundCategoryId = getFundCategoryId(selectedCategory);
           const reservation = reservations.find(
             (r) =>
-              r.category_id === selectedCategory.id &&
+              r.category_id === fundCategoryId &&
               r.account_id === formData.from_account_id
           );
 
@@ -754,7 +761,7 @@ export default function TransactionFormScreen() {
             const { error: reservationError } = await supabase.rpc(
               "adjust_category_reservation",
               {
-                p_category_id: selectedCategory.id,
+                p_category_id: fundCategoryId,
                 p_account_id: formData.from_account_id,
                 p_amount_delta: -amountToDeduct,
               }
@@ -810,9 +817,10 @@ export default function TransactionFormScreen() {
           selectedCategory &&
           formData.from_account_id
         ) {
+          const fundCategoryId = getFundCategoryId(selectedCategory);
           const reservation = reservations.find(
             (r) =>
-              r.category_id === selectedCategory.id &&
+              r.category_id === fundCategoryId &&
               r.account_id === formData.from_account_id
           );
 
@@ -823,7 +831,7 @@ export default function TransactionFormScreen() {
             const { error: reservationError } = await supabase.rpc(
               "adjust_category_reservation",
               {
-                p_category_id: selectedCategory.id,
+                p_category_id: fundCategoryId,
                 p_account_id: formData.from_account_id,
                 p_amount_delta: -amountToDeduct,
               }
@@ -1656,7 +1664,7 @@ export default function TransactionFormScreen() {
                     className="text-sm text-center"
                     style={{ color: colors.muted.foreground }}
                   >
-                    No categories yet. Tap "New" to create one.
+                    No categories yet. Tap New to create one.
                   </Text>
                 </View>
               )}
