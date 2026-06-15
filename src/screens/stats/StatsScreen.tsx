@@ -9,11 +9,12 @@ import {
   Dimensions,
   Modal,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { PieChart } from "react-native-gifted-charts";
 import { useSupabaseSession } from "@/hooks";
-import { useThemeColors, getCategoryBackgroundColor } from "@/constants/theme";
+import { useThemeColors } from "@/constants/theme";
 import { useStatsData } from "./hooks/useStatsData";
 import {
   DateRangeFilter,
@@ -28,8 +29,8 @@ import { FilterSheet } from "@/screens/transactions/components/FilterSheet";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function StatsScreen() {
+  const router = useRouter();
   const colors = useThemeColors();
-  const categoryBgColor = getCategoryBackgroundColor(colors);
   const { session } = useSupabaseSession();
 
   const [period, setPeriod] = useState<DateRangeFilter>("month");
@@ -134,6 +135,21 @@ export default function StatsScreen() {
     { label: "Monthly", value: "month" },
     { label: "Annually", value: "year" },
   ];
+
+  const handleCategoryPress = (stat: CategoryStat) => {
+    router.push({
+      pathname: "/(auth)/category-transactions",
+      params: {
+        categoryId: stat.categoryId ?? "Other",
+        categoryName: stat.categoryName,
+        categoryEmoji: stat.categoryEmoji,
+        type: selectedType,
+        period,
+        referenceDate: referenceDate.toISOString(),
+        accountIds: JSON.stringify(selectedAccountIds),
+      },
+    });
+  };
 
   return (
     <SafeAreaView
@@ -475,10 +491,10 @@ export default function StatsScreen() {
                   key={stat.categoryId || `uncategorized-${index}`}
                   stat={stat}
                   colors={colors}
-                  categoryBgColor={categoryBgColor}
                   currency={statsData.currency}
                   isLast={index === currentStats.length - 1}
                   selectedType={selectedType}
+                  onPress={() => handleCategoryPress(stat)}
                 />
               ))}
             </View>
@@ -520,27 +536,29 @@ export default function StatsScreen() {
 interface CategoryListItemProps {
   stat: CategoryStat;
   colors: ReturnType<typeof useThemeColors>;
-  categoryBgColor: string;
   currency: string;
   isLast: boolean;
   selectedType: "income" | "expense";
+  onPress: () => void;
 }
 
 function CategoryListItem({
   stat,
   colors,
-  categoryBgColor,
   currency,
   isLast,
   selectedType,
+  onPress,
 }: CategoryListItemProps) {
   return (
-    <View
+    <Pressable
+      onPress={onPress}
       className="flex-row items-center justify-between py-2 px-4"
-      style={{
+      style={({ pressed }) => ({
         borderBottomWidth: isLast ? 0 : 1,
         borderBottomColor: colors.border,
-      }}
+        opacity: pressed ? 0.7 : 1,
+      })}
     >
       <View className="flex-row items-center gap-3 flex-1">
         {/* Percentage Box */}
@@ -581,6 +599,12 @@ function CategoryListItem({
       >
         {formatAmount(stat.totalAmount, currency)}
       </Text>
-    </View>
+      <MaterialIcons
+        name="chevron-right"
+        size={20}
+        color={colors.muted.foreground}
+        style={{ marginLeft: 4 }}
+      />
+    </Pressable>
   );
 }

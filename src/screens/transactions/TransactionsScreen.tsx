@@ -22,6 +22,7 @@ import Animated, {
 import { useSupabaseSession } from "@/hooks";
 import { useThemeColors } from "@/constants/theme";
 import { useTransactionsData } from "./hooks/useTransactionsData";
+import { DateRangeFilter } from "./utils/dateRange";
 import { useRefresh } from "@/contexts/RefreshContext";
 import { buildTypeMeta } from "./utils/typeMeta";
 import { TransactionsHeader } from "./components/TransactionsHeader";
@@ -45,6 +46,8 @@ export default function TransactionsScreen() {
   const { refreshAll, refreshAccounts } = useRefresh();
   
   // Filter state
+  const [period, setPeriod] = useState<DateRangeFilter>("month");
+  const [referenceDate, setReferenceDate] = useState(new Date());
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
@@ -63,10 +66,27 @@ export default function TransactionsScreen() {
     currentDateRange,
     filteredAndGroupedTransactions,
     handleRefresh,
-    handlePreviousPeriod,
-    handleNextPeriod,
-    setCurrentPeriodDate,
-  } = useTransactionsData(session, filters);
+  } = useTransactionsData(session, period, referenceDate, filters);
+
+  const handlePreviousPeriod = useCallback(() => {
+    const newDate = new Date(referenceDate);
+    if (period === "month") {
+      newDate.setMonth(newDate.getMonth() - 1);
+    } else if (period === "year") {
+      newDate.setFullYear(newDate.getFullYear() - 1);
+    }
+    setReferenceDate(newDate);
+  }, [period, referenceDate]);
+
+  const handleNextPeriod = useCallback(() => {
+    const newDate = new Date(referenceDate);
+    if (period === "month") {
+      newDate.setMonth(newDate.getMonth() + 1);
+    } else if (period === "year") {
+      newDate.setFullYear(newDate.getFullYear() + 1);
+    }
+    setReferenceDate(newDate);
+  }, [period, referenceDate]);
 
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
@@ -253,10 +273,12 @@ export default function TransactionsScreen() {
           <TransactionsHeader
             totalCount={totalCount}
             colors={colors}
-            currentDateRange={currentDateRange}
+            period={period}
+            referenceDate={referenceDate}
+            onPeriodChange={setPeriod}
             onPrev={handlePreviousPeriod}
             onNext={handleNextPeriod}
-            onDateSelect={setCurrentPeriodDate}
+            onDateSelect={setReferenceDate}
             onSearchPress={handleSearchPress}
             onFilterPress={handleFilterPress}
             hasActiveFilters={hasActiveFilters}

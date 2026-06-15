@@ -2,14 +2,15 @@ import React, { useState } from "react";
 import { Text, View, TouchableOpacity } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { type ThemeColors } from "@/constants/theme";
-import { formatDateRange } from "../utils/dateRange";
-import LogoIcon from "@/components/LogoIcon";
-import { MonthYearPickerModal } from "./MonthYearPickerModal";
+import { DateRangeFilter } from "../utils/dateRange";
+import { PeriodPickerModal } from "./PeriodPickerModal";
 
 type TransactionsHeaderProps = {
   totalCount: number;
   colors: ThemeColors;
-  currentDateRange: { start: Date; end: Date };
+  period: DateRangeFilter;
+  referenceDate: Date;
+  onPeriodChange: (period: DateRangeFilter) => void;
   onPrev: () => void;
   onNext: () => void;
   onDateSelect?: (date: Date) => void;
@@ -18,10 +19,21 @@ type TransactionsHeaderProps = {
   hasActiveFilters?: boolean;
 };
 
+function formatPeriodLabel(period: DateRangeFilter, referenceDate: Date): string {
+  if (period === "month") {
+    return referenceDate.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  }
+  return referenceDate.getFullYear().toString();
+}
+
 export function TransactionsHeader({
-  totalCount,
   colors,
-  currentDateRange,
+  period,
+  referenceDate,
+  onPeriodChange,
   onPrev,
   onNext,
   onDateSelect,
@@ -31,7 +43,8 @@ export function TransactionsHeader({
 }: TransactionsHeaderProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const handleDateSelect = (date: Date) => {
+  const handleSelect = (date: Date, newPeriod: DateRangeFilter) => {
+    onPeriodChange(newPeriod);
     onDateSelect?.(date);
   };
 
@@ -55,11 +68,7 @@ export function TransactionsHeader({
                 className="text-base font-bold text-center"
                 style={{ color: colors.foreground }}
               >
-                {formatDateRange(
-                  currentDateRange.start,
-                  currentDateRange.end,
-                  "month"
-                )}
+                {formatPeriodLabel(period, referenceDate)}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={onNext} className="pl-1 py-1">
@@ -110,12 +119,13 @@ export function TransactionsHeader({
         </View>
       </View>
 
-      <MonthYearPickerModal
+      <PeriodPickerModal
         visible={showDatePicker}
-        currentDate={currentDateRange.start}
+        currentDate={referenceDate}
+        period={period}
         colors={colors}
         onClose={() => setShowDatePicker(false)}
-        onSelect={handleDateSelect}
+        onSelect={handleSelect}
       />
     </>
   );

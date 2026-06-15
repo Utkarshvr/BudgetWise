@@ -4,40 +4,42 @@ import { Alert } from "react-native";
 import { supabase } from "@/lib";
 import { Transaction } from "@/types/transaction";
 import { Category } from "@/types/category";
-import { DateRangeFilter, getDateRangeForPeriod } from "../utils/dateRange";
+import {
+  DateRangeFilter,
+  getDateRangeForPeriod,
+} from "@/screens/transactions/utils/dateRange";
 import { getErrorMessage } from "@/utils";
 import { useRefresh } from "@/contexts/RefreshContext";
 
-type FilterOptions = {
+type CategoryTransactionsParams = {
+  categoryId: string;
+  transactionType: "income" | "expense";
+  period: DateRangeFilter;
+  referenceDate: Date;
   accountIds: string[];
-  categoryIds: string[];
 };
 
-export function useTransactionsData(
+export function useCategoryTransactionsData(
   session: Session | null,
-  period: DateRangeFilter,
-  referenceDate: Date,
-  filters?: FilterOptions
+  params: CategoryTransactionsParams
 ) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { registerTransactionsRefresh } = useRefresh();
 
-  const currentDateRange = useMemo(() => {
-    return getDateRangeForPeriod(period, referenceDate);
-  }, [period, referenceDate]);
+  const currentDateRange = useMemo(
+    () => getDateRangeForPeriod(params.period, params.referenceDate),
+    [params.period, params.referenceDate]
+  );
 
   const fetchTransactions = useCallback(async () => {
     if (!session?.user) return;
 
     const { start, end } = currentDateRange;
-    
-    // Set loading state
     setLoading(true);
 
     try {
-      // Fetch categories first to create a lookup map for parent categories
       const { data: categoriesData, error: categoriesError } = await supabase
         .from("categories")
         .select("id, name, parent_id")
@@ -45,13 +47,11 @@ export function useTransactionsData(
 
       if (categoriesError) throw categoriesError;
 
-      // Create a lookup map: categoryId -> category
       const categoriesMap = new Map<string, Category>();
       categoriesData?.forEach((cat) => {
         categoriesMap.set(cat.id, cat as Category);
       });
 
-      // Fetch transactions
       const { data, error } = await supabase
         .from("transactions")
         .select(
@@ -63,16 +63,18 @@ export function useTransactionsData(
         `
         )
         .eq("user_id", session.user.id)
+        .eq("type", params.transactionType)
         .gte("created_at", start.toISOString())
         .lte("created_at", end.toISOString())
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Enrich transactions with parent category information
       const enrichedTransactions = (data || []).map((transaction: any) => {
         if (transaction.category && transaction.category.parent_id) {
-          const parentCategory = categoriesMap.get(transaction.category.parent_id);
+          const parentCategory = categoriesMap.get(
+            transaction.category.parent_id
+          );
           if (parentCategory) {
             transaction.category.parent = {
               id: parentCategory.id,
@@ -83,17 +85,38 @@ export function useTransactionsData(
         return transaction;
       });
 
-      setTransactions(enrichedTransactions);
-    } catch (error: any) {
+      let filtered = enrichedTransactions;
+
+      if (params.categoryId === "Other") {
+        filtered = filtered.filter((t) => !t.category_id);
+      } else {
+        filtered = filtered.filter(
+          (t) => t.category_id === params.categoryId
+        );
+      }
+
+      if (params.accountIds.length > 0) {
+        filtered = filtered.filter((transaction) => {
+          const fromAccountMatch =
+            transaction.from_account_id &&
+            params.accountIds.includes(transaction.from_account_id);
+          const toAccountMatch =
+            transaction.to_account_id &&
+            params.accountIds.includes(transaction.to_account_id);
+          return fromAccountMatch || toAccountMatch;
+        });
+      }
+
+      setTransactions(filtered);
+    } catch (error: unknown) {
       const errorMessage = getErrorMessage(error, "Failed to fetch transactions");
       Alert.alert("Error", errorMessage);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [session, currentDateRange]);
+  }, [session, currentDateRange, params.categoryId, params.transactionType, params.accountIds]);
 
-  // Fetch transactions when session or date range changes
   useEffect(() => {
     if (session) {
       fetchTransactions();
@@ -105,58 +128,14 @@ export function useTransactionsData(
     fetchTransactions();
   }, [fetchTransactions]);
 
-  // Register refresh function with context
   useEffect(() => {
     const cleanup = registerTransactionsRefresh(handleRefresh);
     return cleanup;
   }, [handleRefresh, registerTransactionsRefresh]);
 
-  // Filter and group transactions by date
-  const filteredAndGroupedTransactions = useMemo(() => {
-    // Apply filters
-    let filtered = transactions;
-
-    if (filters) {
-      // Filter by accounts
-      if (filters.accountIds.length > 0) {
-        filtered = filtered.filter((transaction) => {
-          // Check if transaction involves any of the selected accounts
-          const fromAccountMatch =
-            transaction.from_account_id &&
-            filters.accountIds.includes(transaction.from_account_id);
-          const toAccountMatch =
-            transaction.to_account_id &&
-            filters.accountIds.includes(transaction.to_account_id);
-          return fromAccountMatch || toAccountMatch;
-        });
-      }
-
-      // Filter by categories
-      if (filters.categoryIds.length > 0) {
-        const hasOthersIncome = filters.categoryIds.includes("others_income");
-        const hasOthersExpense = filters.categoryIds.includes("others_expense");
-
-        filtered = filtered.filter((transaction) => {
-          // If transaction has no category, check if "Others" is selected
-          if (!transaction.category_id) {
-            if (transaction.type === "income") {
-              return hasOthersIncome;
-            }
-            if (transaction.type === "expense") {
-              return hasOthersExpense;
-            }
-            return false;
-          }
-
-          // If transaction has a category, check if it's selected
-          return filters.categoryIds.includes(transaction.category_id);
-        });
-      }
-    }
-
-    // Group by date
+  const groupedTransactions = useMemo(() => {
     const grouped: Record<string, Transaction[]> = {};
-    filtered.forEach((transaction) => {
+    transactions.forEach((transaction) => {
       const dateKey = new Date(transaction.created_at).toDateString();
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
@@ -164,27 +143,41 @@ export function useTransactionsData(
       grouped[dateKey].push(transaction);
     });
 
-    // Convert to array and sort by date (newest first)
     return Object.entries(grouped)
       .sort(([dateA], [dateB]) => {
         return new Date(dateB).getTime() - new Date(dateA).getTime();
       })
-      .map(([date, transactions]) => ({
+      .map(([date, txs]) => ({
         date,
-        transactions: transactions.sort(
+        transactions: txs.sort(
           (a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         ),
       }));
-  }, [transactions, filters]);
+  }, [transactions]);
+
+  const totalAmount = useMemo(
+    () => transactions.reduce((sum, t) => sum + t.amount, 0),
+    [transactions]
+  );
+
+  const currency = useMemo(() => {
+    if (transactions.length === 0) return "INR";
+    const counts = new Map<string, number>();
+    transactions.forEach((t) => {
+      const c = t.currency || "INR";
+      counts.set(c, (counts.get(c) || 0) + 1);
+    });
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  }, [transactions]);
 
   return {
     transactions,
+    groupedTransactions,
+    totalAmount,
+    currency,
     loading,
     refreshing,
-    currentDateRange,
-    filteredAndGroupedTransactions,
     handleRefresh,
   };
 }
-
